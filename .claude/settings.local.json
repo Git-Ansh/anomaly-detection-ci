@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(venvScriptspip install pandas numpy scikit-learn xgboost matplotlib seaborn ruptures scipy)",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(venv/Scripts/python:*)",
+      "Bash(../venv/Scripts/python:*)",
+      "Bash(../Doc_ansh/Doc_ansh/venv/Scripts/python:*)",
+      "Bash(dir /s /b /ad \"C:\\\\Users\\\\anshj\\\\Downloads\\\\Doc_ansh\\\\Doc_ansh\\\\Doc_ansh\")",
+      "Bash(findstr:*)",
+      "Bash(done)"
+    ]
+  }
+}
