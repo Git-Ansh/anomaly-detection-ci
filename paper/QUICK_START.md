@@ -43,7 +43,7 @@ Open `main.pdf` and verify:
    - `main.tex`
    - `figures/` folder (5 PDFs)
 
-2. **Go to**: ICPE 2026 submission portal
+2. **Go to**: ICSME 2025 submission portal
 
 3. **Upload ZIP** and fill out form
 
@@ -113,6 +113,6 @@ paper/
 
 Your paper is **publication-ready**. Just compile and submit.
 
-**Expected Outcome**: Acceptance at ICPE 2026
+**Expected Outcome**: Acceptance at ICSME 2025
 
 **Good luck! 🚀**

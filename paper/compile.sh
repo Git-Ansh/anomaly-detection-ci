@@ -1,9 +1,9 @@
 #!/bin/bash
-# Compile ICPE 2026 paper
+# Compile ICSME 2025 paper
 # Usage: bash compile.sh
 
 echo "================================================"
-echo "Compiling ICPE 2026 Paper"
+echo "Compiling ICSME 2025 Paper"
 echo "================================================"
 
 # Check if pdflatex is available

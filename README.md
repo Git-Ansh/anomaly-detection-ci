@@ -1,6 +1,6 @@
 # Mozilla Performance Alert Analysis
 
-A machine learning pipeline for detecting and analyzing performance regressions in Mozilla's Perfherder CI system, developed for the **ICPE 2026 Data Challenge Track**.
+A machine learning pipeline for detecting and analyzing performance regressions in Mozilla's Perfherder CI system, developed for the **ICSME Main Paper Track**.
 
 ## Overview
 
@@ -30,7 +30,7 @@ Doc_ansh/
 │   ├── phase_5/                  # Forecasting-Based Anomaly Detection
 │   ├── phase_6/                  # Root Cause Analysis
 │   └── phase_7/                  # Stacking Ensemble
-├── paper/                        # ICPE 2026 submission
+├── paper/                        # ICSME 2025 submission
 │   ├── main.tex                  # LaTeX paper (4 pages + references)
 │   ├── figures/                  # Publication-ready figures
 │   ├── QUICK_START.md            # Paper compilation guide
@@ -130,12 +130,12 @@ The Mozilla Perfherder dataset contains:
 @inproceedings{shah2026mozilla,
   title={Comparative Analysis of Anomaly Detection Paradigms for Performance Regression Triage in Mozilla's Perfherder},
   author={Shah, Ansh},
-  booktitle={Proceedings of the 17th ACM/SPEC International Conference on Performance Engineering (ICPE)},
+  booktitle={Proceedings of the 17th ACM/SPEC International Conference on Software Maintenance and Evolution (ICSME)},
   year={2026}
 }
 ```
 
 ## License
 
-This project is developed for academic research purposes as part of the ICPE 2026 Data Challenge.
+This project is developed for academic research purposes as part of the ICSME Main Paper Track.
 

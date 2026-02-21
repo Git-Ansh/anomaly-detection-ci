@@ -25,7 +25,10 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+node_modules/
+cascade_outputs/
+AGENTS.md
+CLAUDE.md
 # Virtual environments
 venv/
 ENV/

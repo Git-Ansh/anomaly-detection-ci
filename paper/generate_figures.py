@@ -1,5 +1,5 @@
 """
-Generate figures for ICPE 2026 Data Challenge Paper.
+Generate figures for ICSME Main Paper Track Paper.
 Figures are saved to paper/figures/ directory.
 """
 
@@ -181,7 +181,7 @@ def create_tolerance_sensitivity():
 # Main execution
 # ============================================================
 if __name__ == '__main__':
-    print("Generating figures for ICPE 2026 paper...")
+    print("Generating figures for ICSME 2025 paper...")
     create_paradigm_comparison()
     create_cpd_comparison()
     create_ablation_study()

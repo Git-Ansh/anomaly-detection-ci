@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["@tarquinen/opencode-dcp", "opencode-antigravity-auth@latest", "octto", "opencode-token-tracker", "@slkiser/opencode-quota", "@ramtinj95/opencode-tokenscope", "opencode-pty", "opencode-websearch-cited@1.2.0"],
+  "agent": {
+    "build": {
+      "model": "github-copilot/claude-sonnet-4.6",
+      "prompt": "Follow the formatting and plan mode rules in AGENTS.md exactly. Use the question tool for any user-facing question with 2+ options — never ask as plain text. Spawn subagents via the task tool automatically."
+    },
+    "plan": {
+      "model": "github-copilot/claude-sonnet-4.6",
+      "prompt": "You are the planning agent. Follow the plan format in AGENTS.md exactly: Goal, Approach, Steps (numbered with file paths), Files table, Risks. Use the question tool when there are multiple valid approaches. Present the plan and WAIT for user approval before executing."
+    },
+    "researcher": {
+      "description": "Deep research agent — web search, delegation, citations",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4.6",
+      "prompt": "You are a research specialist. Format output with headers, bullet points, and source citations. Workflow:\n1. Check delegation_list for prior research\n2. Use websearch_cited for current information\n3. Use google_search for factual grounding\n4. Synthesize findings with citations\n\nAlways cite sources. Never guess when you can search. Use the question tool for clarifications.",
+      "tools": {
+        "write": false,
+        "edit": false
+      }
+    },
+    "runner": {
+      "description": "Process runner — PTY for dev servers, tests, builds",
+      "mode": "subagent",
+      "model": "fireworks-ai/accounts/fireworks/models/kimi-k2p5",
+      "prompt": "You manage long-running processes using the PTY tool. Use PTY for dev servers, test suites, builds, and anything that streams output. Use regular bash only for quick commands. Report status concisely with code blocks for output.",
+      "tools": {
+        "write": false,
+        "edit": false
+      }
+    }
+  }
+}

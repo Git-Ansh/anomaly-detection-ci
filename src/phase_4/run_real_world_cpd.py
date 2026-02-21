@@ -2,7 +2,7 @@
 """
 Phase 4 REAL-WORLD CPD: Change-Point Detection on Real Mozilla Data
 
-This script addresses the FATAL FLAW identified in the ICPE 2026 review:
+This script addresses the FATAL FLAW identified in the ICSME 2025 review:
 - Original: CPD evaluated on synthetic data (F1=0.86)
 - Original: ML evaluated on real has_bug data (F1=0.42)
 - PROBLEM: Incomparable evaluation sets!
@@ -409,7 +409,7 @@ def main():
     print("="*60)
     print("PHASE 4: REAL-WORLD CPD EVALUATION")
     print("="*60)
-    print("\nAddressing ICPE 2026 Review Critical Flaw:")
+    print("\nAddressing ICSME 2025 Review Critical Flaw:")
     print("  - Evaluating CPD on REAL Mozilla data (has_bug prediction)")
     print("  - Direct comparison to Phase 7 ML results")
     print("  - Scientifically valid paradigm comparison")

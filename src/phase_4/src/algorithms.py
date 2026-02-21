@@ -35,7 +35,7 @@ class CUSUMDetector(ChangePointDetector):
     PELT with RBF kernel (formerly mislabeled as CUSUM).
 
     NOTE: This is actually PELT (Pruned Exact Linear Time) with RBF kernel,
-    not a true CUSUM algorithm. Renamed for accuracy per ICPE 2026 review.
+    not a true CUSUM algorithm. Renamed for accuracy per ICSME 2025 review.
     """
 
     def __init__(self, min_size: int = 5, jump: int = 1, pen: float = 3.0):

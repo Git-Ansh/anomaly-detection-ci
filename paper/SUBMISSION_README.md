@@ -1,4 +1,4 @@
-# ICPE 2026 Paper - Final Submission Package
+# ICSME 2025 Paper - Final Submission Package
 
 **Title**: Comparative Evaluation of Anomaly Detection Paradigms for Performance Regression Triage in CI/CD Systems
 
@@ -176,7 +176,7 @@ docker run --rm -v $(pwd):/workspace texlive/texlive pdflatex main.tex
 
 ---
 
-## 🎓 ICPE 2026 Guidelines Compliance
+## 🎓 ICSME 2025 Guidelines Compliance
 
 ### Format Requirements ✅
 - [x] **Template**: ACM sigconf with anonymous review mode
@@ -253,7 +253,7 @@ docker run --rm -v $(pwd):/workspace texlive/texlive pdflatex main.tex
 
 ## 📧 Submission Instructions
 
-### ICPE 2026 Data Challenge Track
+### ICSME Main Paper Track
 
 1. **Compile paper** to generate `main.pdf`
 2. **Create submission package**:
@@ -270,7 +270,7 @@ docker run --rm -v $(pwd):/workspace texlive/texlive pdflatex main.tex
 ### Cover Letter Template
 
 ```
-Dear ICPE 2026 Program Committee,
+Dear ICSME 2025 Program Committee,
 
 We submit our revised paper addressing all reviewer concerns:
 

@@ -1,9 +1,9 @@
 @echo off
-REM Compile ICPE 2026 paper on Windows
+REM Compile ICSME 2025 paper on Windows
 REM Usage: compile.bat
 
 echo ================================================
-echo Compiling ICPE 2026 Paper
+echo Compiling ICSME 2025 Paper
 echo ================================================
 echo.
 

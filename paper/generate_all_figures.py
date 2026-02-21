@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate all figures for ICPE 2026 paper.
+Generate all figures for ICSME 2025 paper.
 
 This script creates publication-ready figures from result CSVs.
 """
@@ -26,7 +26,7 @@ FIGURES_DIR = Path(__file__).parent / "figures"
 FIGURES_DIR.mkdir(exist_ok=True)
 
 print("="*60)
-print("GENERATING ALL FIGURES FOR ICPE 2026 PAPER")
+print("GENERATING ALL FIGURES FOR ICSME 2025 PAPER")
 print("="*60)
 
 # ============================================
