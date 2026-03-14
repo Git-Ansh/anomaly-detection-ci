@@ -52,6 +52,20 @@ STAGE_3_FEATURES = [
     'prev_value_mean', 'new_value_mean', 'value_change_ratio',
 ]
 
+# Curated TS features for bug prediction (from Phase 3 time-series extraction).
+# These capture signal quality and change-point characteristics that correlate
+# with real bugs vs noise. Added from cascade_outputs/ts_features_per_summary.csv.
+STAGE_3_TS_FEATURES = [
+    'ts_cv_mean',                    # Coefficient of variation (noise indicator)
+    'ts_direction_change_rate_mean', # How often direction flips (noisy = high)
+    'ts_slope_diff_mean',            # Slope change at alert point (sharp = bug)
+    'ts_variance_ratio_mean',        # Before/after variance ratio
+    'ts_trend_strength_mean',        # Trend strength (strong trend = real change)
+    'ts_normalized_change_mean',     # Normalized magnitude of change
+    'ts_autocorr_lag1_mean',         # Autocorrelation (persistent change = bug)
+    'ts_cusum_max_mean',             # CUSUM statistic (cumulative deviation)
+]
+
 STAGE_3_CAT_FEATURES = ['dominant_suite', 'dominant_platform', 'repository']
 
 
@@ -77,6 +91,11 @@ def prepare_stage_3_data(
             cat_encoders[col] = le
 
     feature_cols = STAGE_3_FEATURES.copy()
+
+    # Add curated TS features if available in the DataFrame
+    available_ts = [c for c in STAGE_3_TS_FEATURES if c in df.columns]
+    feature_cols += available_ts
+
     feature_cols += [c + '_enc' for c in STAGE_3_CAT_FEATURES if c in df.columns]
 
     # Mode A: add cross-validated disposition predictions as features
@@ -126,14 +145,65 @@ def train_stage_3(
 
     n_bug = y.sum()
     n_no_bug = len(y) - n_bug
-    print(f"Stage 3 (Mode {mode}) training: {n_bug} has_bug vs {n_no_bug} no_bug")
+    raw_ratio = n_no_bug / n_bug if n_bug > 0 else 1
+    print(f"Stage 3 (Mode {mode}) training: {n_bug} has_bug vs {n_no_bug} no_bug (ratio={raw_ratio:.1f})")
+    n_ts = sum(1 for c in X.columns if c.startswith('ts_'))
+    print(f"Stage 3 (Mode {mode}) features: {len(X.columns)} total ({n_ts} TS features)")
+
+    # Detect GPU for XGBoost
+    _xgb_gpu = {}
+    if HAS_XGBOOST:
+        try:
+            _t = XGBClassifier(tree_method='hist', device='cuda', n_estimators=1)
+            _t.fit(np.random.rand(10,2), np.random.randint(0,2,10))
+            _xgb_gpu = {'tree_method': 'hist', 'device': 'cuda'}
+            del _t
+        except Exception:
+            pass
+
+    # Grid search scale_pos_weight for best bug recall
+    # Default raw ratio is ~6.7, try multipliers to boost recall
+    best_spw = raw_ratio
+    best_f1 = 0
+    spw_candidates = [raw_ratio * m for m in [0.75, 1.0, 1.25, 1.5, 2.0]]
+    print(f"Stage 3 (Mode {mode}) grid searching scale_pos_weight: {[f'{s:.1f}' for s in spw_candidates]}")
+
+    for spw in spw_candidates:
+        if HAS_XGBOOST:
+            _model = XGBClassifier(
+                n_estimators=200, max_depth=6, learning_rate=0.1,
+                scale_pos_weight=spw,
+                random_state=RANDOM_SEED, eval_metric='logloss',
+                n_jobs=-1, **_xgb_gpu,
+            )
+        else:
+            _model = RandomForestClassifier(
+                n_estimators=200, max_depth=10, min_samples_leaf=5,
+                class_weight={0: 1, 1: spw},
+                random_state=RANDOM_SEED, n_jobs=-1
+            )
+        _oof = get_oof_predictions(_model, X.values, y, n_folds=5, random_state=RANDOM_SEED)
+        _pred = np.argmax(_oof, axis=1)
+        # F1 for has_bug class (class 1)
+        tp = ((y == 1) & (_pred == 1)).sum()
+        fp = ((y == 0) & (_pred == 1)).sum()
+        fn = ((y == 1) & (_pred == 0)).sum()
+        prec = tp / (tp + fp) if (tp + fp) > 0 else 0
+        rec = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0
+        print(f"  spw={spw:.1f}: has_bug precision={prec:.3f}, recall={rec:.3f}, F1={f1:.3f}")
+        if f1 > best_f1:
+            best_f1 = f1
+            best_spw = spw
+
+    print(f"Stage 3 (Mode {mode}) best scale_pos_weight: {best_spw:.1f} (F1={best_f1:.3f})")
 
     if HAS_XGBOOST:
         base_model = XGBClassifier(
             n_estimators=200, max_depth=6, learning_rate=0.1,
-            scale_pos_weight=n_no_bug / n_bug if n_bug > 0 else 1,
+            scale_pos_weight=best_spw,
             random_state=RANDOM_SEED, eval_metric='logloss',
-            use_label_encoder=False, n_jobs=-1
+            n_jobs=-1, **_xgb_gpu,
         )
     else:
         base_model = RandomForestClassifier(
@@ -141,12 +211,12 @@ def train_stage_3(
             class_weight='balanced', random_state=RANDOM_SEED, n_jobs=-1
         )
 
-    # Generate OOF predictions for threshold tuning
+    # Generate OOF predictions for threshold tuning with best spw
     oof_model = XGBClassifier(
         n_estimators=200, max_depth=6, learning_rate=0.1,
-        scale_pos_weight=n_no_bug / n_bug if n_bug > 0 else 1,
+        scale_pos_weight=best_spw,
         random_state=RANDOM_SEED, eval_metric='logloss',
-        use_label_encoder=False, n_jobs=-1
+        n_jobs=-1, **_xgb_gpu,
     ) if HAS_XGBOOST else RandomForestClassifier(
         n_estimators=200, max_depth=10, min_samples_leaf=5,
         class_weight='balanced', random_state=RANDOM_SEED, n_jobs=-1
@@ -155,29 +225,39 @@ def train_stage_3(
                                      n_folds=5, random_state=RANDOM_SEED)
 
     # Find per-class thresholds on OOF predictions
+    # Lower target_accuracy to allow higher recall on bugs
     per_class_thresholds = find_per_class_thresholds(
-        y, oof_proba, target_accuracy=0.80, min_samples=5
+        y, oof_proba, target_accuracy=0.70, min_samples=5
     )
     print(f"Stage 3 (Mode {mode}) per-class thresholds: no_bug={per_class_thresholds[0]:.2f}, has_bug={per_class_thresholds[1]:.2f}")
 
-    # Also find a global fallback threshold on OOF
+    # Find global threshold tuned for F1 of the has_bug class
     oof_confidence = np.max(oof_proba, axis=1)
     oof_predicted = np.argmax(oof_proba, axis=1)
 
-    best_threshold = 0.60
-    best_score = 0
-    for t in np.arange(0.50, 0.90, 0.01):
+    best_threshold = 0.50
+    best_f1_global = 0
+    for t in np.arange(0.40, 0.90, 0.01):
         mask = oof_confidence >= t
         if mask.sum() < 10:
             continue
-        acc = (y[mask] == oof_predicted[mask]).mean()
+        # F1 for the has_bug class among confident predictions
+        pred_bug = (oof_predicted[mask] == 1)
+        true_bug = (y[mask] == 1)
+        tp = (pred_bug & true_bug).sum()
+        fp = (pred_bug & ~true_bug).sum()
+        fn = (~pred_bug & true_bug).sum()
+        prec = tp / (tp + fp) if (tp + fp) > 0 else 0
+        rec = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0
         cov = mask.mean()
-        score = acc * cov
-        if acc >= 0.70 and score > best_score:
-            best_score = score
+        # Weighted: F1 + small coverage bonus
+        score = f1 + 0.1 * cov
+        if score > best_f1_global:
+            best_f1_global = score
             best_threshold = t
 
-    print(f"Stage 3 (Mode {mode}) global threshold (OOF): {best_threshold:.2f}")
+    print(f"Stage 3 (Mode {mode}) global threshold (OOF, F1-tuned): {best_threshold:.2f}")
 
     # Train final calibrated model on all data
     calibrated_model = calibrate_model(
@@ -244,7 +324,8 @@ def predict_stage_3(
             if col in remaining_df.columns:
                 vals = remaining_df[col].astype(str).fillna('unknown')
                 known = set(le.classes_)
-                vals = vals.apply(lambda x: x if x in known else le.classes_[0])
+                fallback = 'unknown' if 'unknown' in known else le.classes_[0]
+                vals = vals.apply(lambda x: x if x in known else fallback)
                 remaining_df[col + '_enc'] = le.transform(vals)
 
         # Add Stage 1 probabilities if in Mode A

@@ -50,11 +50,15 @@ STAGE_0_FEATURES = [
     'prev_value_mean', 'new_value_mean', 'value_change_ratio',
 ]
 
-# Phase 3 TS features: evaluated but NOT used in Stage 0.
-# Ablation showed they add curse-of-dimensionality to the small
-# Invalid class (387 training samples) and reduce recall from 37.6%
-# to 21.8%. They remain available for Stage 1/3 if needed.
-STAGE_0_TS_FEATURES = []  # disabled after ablation
+# Phase 3 TS features: full set was disabled after ablation (curse of
+# dimensionality with 30+ features for 387 Invalid samples).
+# Now using a CURATED subset of 3 features that capture noise/stability
+# patterns most predictive for Invalid detection.
+STAGE_0_TS_FEATURES = [
+    'ts_cv_mean',                    # Coefficient of variation - high = noisy = Invalid-like
+    'ts_variance_ratio_mean',        # Before/after variance ratio - no real change = Invalid
+    'ts_direction_change_rate_mean', # Direction instability - erratic = noise
+]
 
 # Suite-level heuristic: per-suite Invalid rate learned from training data.
 # This is NOT leakage -- it's computed from training labels only and
@@ -169,8 +173,19 @@ def train_stage_0(
     print(f"Stage 0 training: {n_invalid} Invalid vs {n_valid} Valid")
 
     # Cost-sensitive reweighting: increase Invalid class weight
-    # to target ~65% recall at >=85% precision (was 47.5% recall at 96% precision)
-    invalid_weight = (n_valid / n_invalid) * 1.5 if n_invalid > 0 else 1
+    # Raised from 1.5x to 2.5x to boost Invalid recall (target ~55%)
+    invalid_weight = (n_valid / n_invalid) * 2.5 if n_invalid > 0 else 1
+
+    # Detect GPU for XGBoost
+    _xgb_gpu = {}
+    if HAS_XGBOOST:
+        try:
+            _t = XGBClassifier(tree_method='hist', device='cuda', n_estimators=1)
+            _t.fit(__import__('numpy').random.rand(10,2), __import__('numpy').random.randint(0,2,10))
+            _xgb_gpu = {'tree_method': 'hist', 'device': 'cuda'}
+            del _t
+        except Exception:
+            pass
 
     if HAS_XGBOOST:
         base_model = XGBClassifier(
@@ -180,8 +195,8 @@ def train_stage_0(
             scale_pos_weight=invalid_weight,
             random_state=RANDOM_SEED,
             eval_metric='logloss',
-            use_label_encoder=False,
-            n_jobs=-1
+            n_jobs=-1,
+            **_xgb_gpu,
         )
     else:
         base_model = RandomForestClassifier(
@@ -198,7 +213,7 @@ def train_stage_0(
         n_estimators=200, max_depth=6, learning_rate=0.1,
         scale_pos_weight=invalid_weight,
         random_state=RANDOM_SEED, eval_metric='logloss',
-        use_label_encoder=False, n_jobs=-1
+        n_jobs=-1, **_xgb_gpu,
     ) if HAS_XGBOOST else RandomForestClassifier(
         n_estimators=200, max_depth=10, min_samples_leaf=5,
         class_weight={0: 1, 1: invalid_weight},
@@ -208,8 +223,9 @@ def train_stage_0(
                                      n_folds=5, random_state=RANDOM_SEED)
 
     # Find per-class thresholds on OOF predictions
+    # Lowered from 0.85 to 0.80 to allow more Invalid predictions through
     per_class_thresholds = find_per_class_thresholds(
-        y, oof_proba, target_accuracy=0.85, min_samples=5
+        y, oof_proba, target_accuracy=0.80, min_samples=5
     )
     print(f"Stage 0 per-class thresholds: Valid={per_class_thresholds[0]:.2f}, Invalid={per_class_thresholds[1]:.2f}")
 
@@ -229,7 +245,7 @@ def train_stage_0(
         prec = y[pred_invalid].mean()
         rec = pred_invalid.sum() / y.sum() if y.sum() > 0 else 0
         f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0
-        if prec >= 0.85 and f1 > best_f1:
+        if prec >= 0.80 and f1 > best_f1:
             best_f1 = f1
             best_threshold = t
 
@@ -287,12 +303,14 @@ def predict_stage_0(
     suite_invalid_rates = stage_0_artifacts.get('suite_invalid_rates', {})
 
     # Encode categoricals using fitted encoders
+    # N1: Map unseen categories to "unknown" (not first training class)
     for col, le in encoders.items():
         if col in df.columns:
             vals = df[col].astype(str).fillna('unknown')
-            # Handle unseen categories
             known = set(le.classes_)
-            vals = vals.apply(lambda x: x if x in known else le.classes_[0])
+            # Map unseen to 'unknown' if it was in training, else first class
+            fallback = 'unknown' if 'unknown' in known else le.classes_[0]
+            vals = vals.apply(lambda x: x if x in known else fallback)
             df[col + '_enc'] = le.transform(vals)
 
     # Apply suite Invalid rate from training data

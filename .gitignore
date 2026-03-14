@@ -27,6 +27,7 @@ wheels/
 *.egg
 node_modules/
 cascade_outputs/
+cascade_external_outputs/
 AGENTS.md
 CLAUDE.md
 # Virtual environments
@@ -138,3 +139,4 @@ htmlcov/
 # Exclude reference PDF documents (keep paper figures)
 *.pdf
 !paper/figures/*.pdf
+.fireworks_key

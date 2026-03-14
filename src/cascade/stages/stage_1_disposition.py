@@ -110,8 +110,23 @@ def prepare_stage_1_data(
     return X_scaled, y, cat_encoders, scaler, class_encoder
 
 
+def _detect_xgb_gpu():
+    """Detect XGBoost GPU support."""
+    if not HAS_XGBOOST:
+        return {}
+    try:
+        _t = XGBClassifier(tree_method='hist', device='cuda', n_estimators=1)
+        _t.fit(np.random.rand(10, 2), np.random.randint(0, 2, 10))
+        del _t
+        return {'tree_method': 'hist', 'device': 'cuda'}
+    except Exception:
+        return {}
+
+_XGB_GPU_PARAMS = _detect_xgb_gpu()
+
+
 def _build_base_model():
-    """Build the base model (XGBoost preferred, RF fallback)."""
+    """Build the base model (XGBoost with GPU preferred, RF fallback)."""
     if HAS_XGBOOST:
         return XGBClassifier(
             n_estimators=200,
@@ -119,9 +134,9 @@ def _build_base_model():
             learning_rate=0.1,
             random_state=RANDOM_SEED,
             eval_metric='mlogloss',
-            use_label_encoder=False,
             n_jobs=-1,
             objective='multi:softprob',
+            **_XGB_GPU_PARAMS,
         )
     else:
         return RandomForestClassifier(
@@ -135,7 +150,7 @@ def _build_base_model():
 
 
 def _build_ensemble():
-    """Build soft-voting ensemble of XGB + RF using sklearn VotingClassifier."""
+    """Build soft-voting ensemble of XGB (GPU) + RF using sklearn VotingClassifier."""
     estimators = []
 
     if HAS_XGBOOST:
@@ -145,9 +160,9 @@ def _build_ensemble():
             learning_rate=0.1,
             random_state=RANDOM_SEED,
             eval_metric='mlogloss',
-            use_label_encoder=False,
             n_jobs=-1,
             objective='multi:softprob',
+            **_XGB_GPU_PARAMS,
         )))
 
     estimators.append(('rf', RandomForestClassifier(
@@ -302,11 +317,13 @@ def predict_stage_1(
     threshold = stage_1_artifacts['threshold']
 
     # Encode categoricals
+    # N1: Map unseen categories to "unknown" (not first training class)
     for col, le in cat_encoders.items():
         if col in df.columns:
             vals = df[col].astype(str).fillna('unknown')
             known = set(le.classes_)
-            vals = vals.apply(lambda x: x if x in known else le.classes_[0])
+            fallback = 'unknown' if 'unknown' in known else le.classes_[0]
+            vals = vals.apply(lambda x: x if x in known else fallback)
             df[col + '_enc'] = le.transform(vals)
 
     feature_cols = stage_1_artifacts['feature_cols']

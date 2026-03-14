@@ -148,6 +148,51 @@ def find_threshold_for_accuracy(
     return float(valid.loc[valid['coverage'].idxmax(), 'threshold'])
 
 
+def coverage_accuracy_with_operating_point(
+    y_true: np.ndarray,
+    proba: np.ndarray,
+    per_class_thresholds: np.ndarray,
+    thresholds: Optional[np.ndarray] = None,
+) -> pd.DataFrame:
+    """
+    Coverage-accuracy curve with per-class threshold operating point marked (L1).
+
+    The actual system uses per-class thresholds, not a global threshold.
+    This function marks the operating point on the curve to show where the
+    system actually operates.
+
+    Args:
+        y_true: True labels
+        proba: Calibrated probabilities (n_samples, n_classes)
+        per_class_thresholds: Per-class confidence thresholds from training
+        thresholds: Global thresholds to sweep for the curve
+
+    Returns:
+        DataFrame with threshold, coverage, accuracy, is_operating_point columns
+    """
+    curve = coverage_accuracy_curve(y_true, proba, thresholds)
+
+    # Compute operating point using per-class thresholds
+    confidence = np.max(proba, axis=1) if proba.ndim > 1 else np.maximum(proba, 1 - proba)
+    predicted = np.argmax(proba, axis=1) if proba.ndim > 1 else (proba >= 0.5).astype(int)
+
+    per_sample_threshold = per_class_thresholds[predicted]
+    op_mask = confidence >= per_sample_threshold
+    op_coverage = op_mask.mean()
+    op_accuracy = (y_true[op_mask] == predicted[op_mask]).mean() if op_mask.any() else np.nan
+
+    # Mark which curve point is closest to operating point
+    if len(curve) > 0:
+        dist = abs(curve['coverage'] - op_coverage)
+        closest_idx = dist.idxmin()
+        curve['is_operating_point'] = False
+        curve.loc[closest_idx, 'is_operating_point'] = True
+        curve['op_coverage'] = op_coverage
+        curve['op_accuracy'] = op_accuracy
+
+    return curve
+
+
 def workload_reduction(
     n_total: int,
     n_deferred: int
