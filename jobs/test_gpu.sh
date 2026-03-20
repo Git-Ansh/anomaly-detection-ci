@@ -2,9 +2,10 @@
 #SBATCH --job-name=test_gpu
 #SBATCH --account=aip-rnishat
 #SBATCH --partition=gpubase_bynode_b1
-#SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=16G
+#SBATCH --gpus-per-node=h100:4
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=0
 #SBATCH --time=0:15:00
 #SBATCH --output=jobs/test_gpu_%j.out
 #SBATCH --error=jobs/test_gpu_%j.err

@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=setup_env
 #SBATCH --account=aip-rnishat
-#SBATCH --partition=cpubase_bycore_b1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=16G
+#SBATCH --partition=cpubase_bycore_b2
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
 #SBATCH --time=1:00:00
 #SBATCH --output=jobs/setup_env_%j.out
 #SBATCH --error=jobs/setup_env_%j.err
