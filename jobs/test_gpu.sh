@@ -19,6 +19,10 @@ echo ""
 module load python/3.11.5 cuda/12.6 scipy-stack/2026a
 source $SCRATCH/venv_cascade/bin/activate
 
+# Force offline mode for HuggingFace (compute nodes have no internet)
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+
 echo "=== Python ==="
 python --version
 echo ""

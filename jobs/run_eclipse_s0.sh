@@ -18,6 +18,11 @@ echo "Job ID: $SLURM_JOB_ID"
 module load python/3.11.5 cuda/12.6 scipy-stack/2026a
 source $SCRATCH/venv_cascade/bin/activate
 
+# Force offline mode for HuggingFace (compute nodes have no internet)
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+
 PROJ_DIR=~/links/projects/aip-rnishat/shared/perf-regression-ci
 cd $PROJ_DIR
 
