@@ -97,12 +97,15 @@ def load_eclipse_zenodo(
         loaded = []
         for project in projects:
             proj_upper = project.upper()
+            # Also check lite data directory (pre-extracted with needed columns only)
+            lite_dir = data_dir.parent / 'eclipse_zenodo_lite'
             candidates = [
                 data_dir / 'Eclipse' / f'P_{project}' / f'{project}_dataset_issues.csv',
                 data_dir / 'Eclipse' / f'C_{project}' / f'{proj_upper}_dataset_issues.csv',
                 data_dir / 'Eclipse' / f'C_{project.lower()}' / f'{proj_upper}_dataset_issues.csv',
                 data_dir / f'P_{project}' / f'{project}_dataset_issues.csv',
                 data_dir / f'{project}_dataset_issues.csv',
+                lite_dir / f'{project}.csv',
             ]
             for csv_path in candidates:
                 if csv_path.exists():
