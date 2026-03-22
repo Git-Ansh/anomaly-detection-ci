@@ -108,7 +108,7 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, criterion, device, 
         
         optimizer.zero_grad()
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-        loss = criterion(outputs.logits, labels)
+        loss = criterion(outputs.logits.float(), labels)
         loss.backward()
         
         # Gradient clipping — important for DeBERTa stability
@@ -147,10 +147,11 @@ def evaluate(model, dataloader, criterion, device, num_classes):
         labels = batch["label"].to(device)
         
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-        loss = criterion(outputs.logits, labels)
-        
+        logits_f32 = outputs.logits.float()
+        loss = criterion(logits_f32, labels)
+
         total_loss += loss.item() * labels.size(0)
-        probs = torch.softmax(outputs.logits, dim=-1)
+        probs = torch.softmax(logits_f32, dim=-1)
         preds = probs.argmax(dim=-1)
         
         all_preds.extend(preds.cpu().numpy())
