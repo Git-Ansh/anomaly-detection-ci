@@ -201,6 +201,7 @@ def main():
     args = parser.parse_args()
     
     # ─── Setup ───
+    torch.set_default_dtype(torch.float32)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     
@@ -289,6 +290,7 @@ def main():
         args.model_name,
         num_labels=num_classes,
         problem_type="single_label_classification",
+        torch_dtype=torch.float32,  # Force fp32 — H100 may default to fp16/bf16
     )
     model.to(device)
     
@@ -389,7 +391,8 @@ def main():
         
         # Reload best model
         best_model = AutoModelForSequenceClassification.from_pretrained(
-            output_dir / "best_model"
+            output_dir / "best_model",
+            torch_dtype=torch.float32,
         ).to(device)
         
         # No-weight criterion for fair test eval
