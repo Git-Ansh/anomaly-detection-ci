@@ -18,7 +18,7 @@ echo "Date: $(date)"
 echo "Host: $(hostname)"
 echo "Job ID: $SLURM_JOB_ID"
 
-module load python/3.11.5 cuda/12.6 scipy-stack/2026a
+module load python/3.11.5 cuda/12.6 scipy-stack/2026a arrow/17.0.0
 source $SCRATCH/venv_cascade/bin/activate
 
 # Force offline mode for HuggingFace (compute nodes have no internet)
