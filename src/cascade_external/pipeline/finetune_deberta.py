@@ -168,7 +168,7 @@ def evaluate(model, dataloader, criterion, device, num_classes):
     
     # Top-3 accuracy — relevant for conformal set evaluation
     if num_classes > 3:
-        top3_acc = top_k_accuracy_score(all_labels, all_probs, k=3)
+        top3_acc = top_k_accuracy_score(all_labels, all_probs, k=3, labels=range(num_classes))
     else:
         top3_acc = acc
     
