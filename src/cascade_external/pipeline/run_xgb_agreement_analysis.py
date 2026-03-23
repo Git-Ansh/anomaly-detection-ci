@@ -56,44 +56,144 @@ assert len(test_labels) == len(deb_test_labels), f"Label count mismatch: {len(te
 assert np.array_equal(test_labels, deb_test_labels), "Label values don't match!"
 print("Labels verified: match between parquet and DeBERTa npy")
 
-# ─── Train XGBoost ───
-print("\n=== Training XGBoost ===")
+# ─── Feature Engineering (matching existing Eclipse S2 pipeline) ───
+print("\n=== Feature Engineering (full S2 pipeline) ===")
 
-# Features: TF-IDF on text + numeric metadata
-print("Building TF-IDF features...")
-tfidf = TfidfVectorizer(max_features=10000, ngram_range=(1, 2), sublinear_tf=True)
+SEVERITY_MAP = {
+    'blocker': 5, 'critical': 4, 'major': 3, 'normal': 2,
+    'minor': 1, 'trivial': 0, 'enhancement': -1
+}
+PRIORITY_MAP = {'P1': 4, 'P2': 3, 'P3': 2, 'P4': 1, 'P5': 0}
+
+
+def engineer_features(df):
+    """Replicate eclipse_zenodo_loader.engineer_features() on our parquet data."""
+    df = df.copy()
+
+    # Text length features
+    df['summary_length'] = df['text'].str.split(' \\[SEP\\] ').str[0].str.len()
+    df['summary_word_count'] = df['text'].str.split(' \\[SEP\\] ').str[0].str.split().str.len()
+    desc = df['text'].str.split(' \\[SEP\\] ').str[1].fillna('')
+    df['desc_length'] = desc.str.len()
+    df['desc_word_count'] = desc.str.split().str.len()
+    df['has_description'] = (df['desc_length'] > 10).astype(int)
+
+    # Severity features
+    if 'severity' in df.columns:
+        sev_lower = df['severity'].fillna('normal').str.lower()
+        df['severity_numeric'] = sev_lower.map(SEVERITY_MAP).fillna(2).astype(int)
+        df['is_enhancement'] = (sev_lower == 'enhancement').astype(int)
+        df['is_high_severity'] = sev_lower.isin(['blocker', 'critical']).astype(int)
+    else:
+        df['severity_numeric'] = 2
+        df['is_enhancement'] = 0
+        df['is_high_severity'] = 0
+
+    # Priority features
+    if 'priority' in df.columns:
+        df['priority_numeric'] = df['priority'].fillna('P3').map(PRIORITY_MAP).fillna(2).astype(int)
+    else:
+        df['priority_numeric'] = 2
+
+    # Temporal features
+    if 'creation_time' in df.columns:
+        dt = pd.to_datetime(df['creation_time'], errors='coerce')
+        df['open_hour'] = dt.dt.hour.fillna(12).astype(int)
+        df['open_dayofweek'] = dt.dt.dayofweek.fillna(0).astype(int)
+        df['open_month'] = dt.dt.month.fillna(1).astype(int)
+    else:
+        df['open_hour'] = 12
+        df['open_dayofweek'] = 0
+        df['open_month'] = 1
+
+    return df
+
+
+def encode_categoricals(train_df, cal_df, test_df, cat_cols):
+    """Label-encode categoricals, fitting on train only."""
+    from sklearn.preprocessing import LabelEncoder
+    encoders = {}
+    for col in cat_cols:
+        if col not in train_df.columns:
+            continue
+        le = LabelEncoder()
+        # Fit on train values + 'unknown'
+        all_vals = list(train_df[col].fillna('unknown').unique()) + ['unknown']
+        le.fit(all_vals)
+        enc_col = f'{col}_enc'
+        for df in [train_df, cal_df, test_df]:
+            vals = df[col].fillna('unknown').copy()
+            # Map unseen to 'unknown'
+            vals = vals.where(vals.isin(le.classes_), other='unknown')
+            df[enc_col] = le.transform(vals)
+        encoders[col] = le
+    return encoders
+
+
+# Engineer features for all splits
+for name, df in [("train", train_df), ("cal", cal_df), ("test", test_df)]:
+    engineered = engineer_features(df)
+    for col in engineered.columns:
+        if col not in df.columns:
+            df[col] = engineered[col]
+
+# Creator bug count (from training data only)
+if 'creator' in train_df.columns:
+    creator_counts = train_df['creator'].value_counts().to_dict()
+    for df in [train_df, cal_df, test_df]:
+        df['creator_bug_count'] = df['creator'].map(creator_counts).fillna(1).astype(int)
+    print(f"  creator_bug_count: mean={train_df['creator_bug_count'].mean():.0f}")
+
+# Encode categoricals
+cat_cols = ['severity', 'priority', 'platform', 'op_sys', 'product']
+cat_cols = [c for c in cat_cols if c in train_df.columns]
+encode_categoricals(train_df, cal_df, test_df, cat_cols)
+print(f"  Encoded categoricals: {cat_cols}")
+
+# Numeric feature list (matching S2 pipeline, excluding component_size)
+numeric_features = [
+    'summary_length', 'summary_word_count', 'desc_length', 'desc_word_count',
+    'has_description', 'severity_numeric', 'priority_numeric',
+    'is_enhancement', 'is_high_severity', 'open_hour', 'open_dayofweek', 'open_month',
+]
+if 'creator_bug_count' in train_df.columns:
+    numeric_features.append('creator_bug_count')
+
+cat_enc_features = [f'{c}_enc' for c in cat_cols if f'{c}_enc' in train_df.columns]
+structured_features = numeric_features + cat_enc_features
+print(f"  Structured features ({len(structured_features)}): {structured_features}")
+
+# TF-IDF (matching S2: 500 features, bigrams, stop_words, min_df=2)
+print("Building TF-IDF features (500, matching S2 config)...")
+tfidf = TfidfVectorizer(
+    max_features=500, ngram_range=(1, 2),
+    stop_words='english', min_df=2, sublinear_tf=True
+)
 X_train_tfidf = tfidf.fit_transform(train_df["text"].values)
 X_cal_tfidf = tfidf.transform(cal_df["text"].values)
 X_test_tfidf = tfidf.transform(test_df["text"].values)
-print(f"TF-IDF shape: {X_train_tfidf.shape}")
+print(f"  TF-IDF shape: {X_train_tfidf.shape}")
 
-# Add numeric features if available
-numeric_cols = [c for c in train_df.columns if c in [
-    "severity", "priority", "op_sys", "platform", "product"
-]]
-if numeric_cols:
-    print(f"Adding numeric features: {numeric_cols}")
-    for col in numeric_cols:
-        for df in [train_df, cal_df, test_df]:
-            df[col] = df[col].astype("category").cat.codes
+# Scale structured features
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_train_struct = scaler.fit_transform(train_df[structured_features].values.astype(float))
+X_cal_struct = scaler.transform(cal_df[structured_features].values.astype(float))
+X_test_struct = scaler.transform(test_df[structured_features].values.astype(float))
 
-    X_train_num = csr_matrix(train_df[numeric_cols].values.astype(float))
-    X_cal_num = csr_matrix(cal_df[numeric_cols].values.astype(float))
-    X_test_num = csr_matrix(test_df[numeric_cols].values.astype(float))
-
-    X_train = hstack([X_train_tfidf, X_train_num])
-    X_cal = hstack([X_cal_tfidf, X_cal_num])
-    X_test = hstack([X_test_tfidf, X_test_num])
-else:
-    X_train = X_train_tfidf
-    X_cal = X_cal_tfidf
-    X_test = X_test_tfidf
+# Combine: structured + TF-IDF
+X_train = hstack([csr_matrix(X_train_struct), X_train_tfidf])
+X_cal = hstack([csr_matrix(X_cal_struct), X_cal_tfidf])
+X_test = hstack([csr_matrix(X_test_struct), X_test_tfidf])
 
 y_train = train_df["label"].values
 y_cal = cal_df["label"].values
 y_test = test_df["label"].values
 
-print(f"Training XGBoost on {X_train.shape[0]:,} samples, {X_train.shape[1]:,} features...")
+print(f"\n=== Training XGBoost ===")
+print(f"Features: {X_train.shape[1]} ({len(structured_features)} structured + {X_train_tfidf.shape[1]} TF-IDF)")
+print(f"Samples: {X_train.shape[0]:,} train, {X_cal.shape[0]:,} cal, {X_test.shape[0]:,} test")
+
 xgb = XGBClassifier(
     n_estimators=1000,
     max_depth=6,
@@ -107,10 +207,16 @@ xgb = XGBClassifier(
 )
 xgb.fit(X_train, y_train, eval_set=[(X_cal, y_cal)], verbose=50)
 
+print(f"\nBest iteration: {xgb.best_iteration}")
+
 xgb_test_preds = xgb.predict(X_test)
 xgb_test_probs = xgb.predict_proba(X_test)
+xgb_cal_preds = xgb.predict(X_cal)
+xgb_cal_probs = xgb.predict_proba(X_cal)
 xgb_test_acc = accuracy_score(y_test, xgb_test_preds)
-print(f"\nXGBoost test accuracy: {xgb_test_acc:.4f}")
+xgb_cal_acc = accuracy_score(y_cal, xgb_cal_preds)
+print(f"XGBoost cal accuracy: {xgb_cal_acc:.4f}")
+print(f"XGBoost test accuracy: {xgb_test_acc:.4f}")
 print(f"XGBoost test F1 (macro): {f1_score(y_test, xgb_test_preds, average='macro', zero_division=0):.4f}")
 print(f"XGBoost test F1 (weighted): {f1_score(y_test, xgb_test_preds, average='weighted', zero_division=0):.4f}")
 
