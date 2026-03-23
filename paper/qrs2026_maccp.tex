@@ -71,13 +71,13 @@ Conformal prediction, bug triage, prediction sets, cross-model agreement, softwa
 % ============================================================
 \section{Introduction}\label{sec:intro}
 
-Software bug triage---assigning incoming bug reports to the correct development team---is a critical software quality activity. In large projects such as Eclipse (30+ components) and Mozilla (200+ components), misrouted bugs delay fixes by days, increase resolution time, and waste developer effort. Studies show human triagers misassign 30--40\% of bugs~\cite{anvik2006should}. Machine learning classifiers can automate triage but provide no reliability guarantees: a model predicting ``Platform team'' with 66\% confidence gives practitioners no principled basis for deciding whether to trust the prediction or escalate to manual review.
+Consider a bug report that reads: ``The editor crashes when I paste formatted text from Chrome into the code window.'' Someone must decide which of 30 development teams should fix this. Is it the Platform team (a system-level crash)? The UI team (a paste operation in the interface)? The Core team (a rendering engine failure)? In Eclipse, an open-source IDE with over 300,000 filed bug reports, a human triager reads each report and makes this decision. They get it wrong 30--40\% of the time~\cite{anvik2006should}, sending the bug to the wrong team where it sits unaddressed for days before being rerouted.
 
-Prior work on automated bug triage~\cite{anvik2006should,xia2017elm,dipongkor2023transformer} frames triage as a point-prediction problem---the model picks one component and the system either trusts it or does not. Even recent LLM-based industrial systems~\cite{chen2025triangle,xu2026whatscode} produce point predictions without formal reliability guarantees. When the model is wrong, the bug bounces between teams, delaying resolution. There is no mechanism to distinguish reliable predictions from unreliable ones.
+Machine learning can automate this decision, but current approaches~\cite{anvik2006should,xia2017elm,dipongkor2023transformer,chen2025triangle,xu2026whatscode} provide a single answer---``Platform team''---with no way to know whether to trust it. When the model is wrong, the misrouted bug wastes even more time than manual triage.
 
-Conformal prediction~\cite{vovk2005algorithmic} offers a fundamentally different approach. Instead of a single prediction, it produces a \emph{prediction set}---a set of candidate components guaranteed to contain the correct assignment with probability $\geq 1 - \alpha$. If the set is a singleton $\{\text{Platform}\}$, auto-assign with confidence. If it is $\{\text{Platform}, \text{UI}, \text{Core}\}$, show the developer three options instead of thirty. The coverage guarantee is distribution-free and finite-sample valid. However, standard conformal prediction uses a single threshold for all predictions, producing medium-sized sets everywhere---unnecessarily large for easy bugs and dangerously small for hard ones.
+What if, instead of one possibly-wrong answer, the system said: ``We are 90\% certain the correct team is one of these three: \{Platform, UI, Core\}''? If the list has only one team, auto-assign it---the system is confident. If the list has three teams, show the developer three options instead of thirty. This is what conformal prediction~\cite{vovk2005algorithmic} provides: a shortlist with a mathematical guarantee that the correct answer is included.
 
-We observe that when two architecturally different classifiers---a fine-tuned DeBERTa transformer~\cite{he2021deberta} reading bug text and an XGBoost model~\cite{chen2016xgboost} processing metadata features---independently agree on the same component assignment, the prediction is almost certainly correct (85.7\% accuracy on Eclipse). When they disagree, the prediction is unreliable (27.1\% accuracy). We leverage this by instantiating Mondrian conformal prediction~\cite{vovk2005algorithmic} with cross-model agreement as the partition variable: the agree group receives a tighter conformal threshold (producing smaller, more actionable sets), while the disagree group receives a wider threshold (producing larger, more conservative sets). Both partitions receive individual formal coverage guarantees.
+But not all bugs are equally hard. Some clearly belong to one team---a crash in a specific module with a clear stack trace. Others are genuinely ambiguous. We observe that when two very different AI models---one that reads the bug report's text (DeBERTa~\cite{he2021deberta}) and one that analyzes metadata like who filed the bug and which product it belongs to (XGBoost~\cite{chen2016xgboost})---independently point to the same team, the bug is almost certainly assigned correctly (85.7\% accuracy on Eclipse). When they disagree, the prediction is unreliable (27.1\% accuracy). We use this agreement signal to adjust the system's shortlists: tighter for easy bugs, wider for hard bugs.
 
 We evaluate on Eclipse (30 components, 158K bugs), Mozilla Core (20 components, 45.7K bugs), and ServiceNow (11 IT incident categories, 22.7K incidents). On Eclipse, the agree partition (46.7\% of bugs) achieves 61.2\% singleton rate at 90.0\% accuracy with mean set size 2.30---enabling automated triage for 29\% of all incoming bugs with formal coverage guarantees. On Mozilla Core, MACCP replicates: the agree partition (26.8\%) achieves 25.0\% singleton rate at 94.4\% accuracy. Cross-model agreement provides 24--69 percentage point accuracy gaps within the same confidence bins across both datasets, proving this signal is not redundant with single-model confidence.
 
@@ -92,10 +92,10 @@ We evaluate on Eclipse (30 components, 158K bugs), Mozilla Core (20 components, 
 
 \smallskip\noindent\textbf{Research Questions.}
 \begin{itemize}
-\item[\textbf{RQ1}] Does cross-model agreement provide reliability information beyond single-model confidence for software bug triage?
-\item[\textbf{RQ2}] Does conditioning conformal prediction on cross-model agreement produce more efficient prediction sets compared to standard RAPS?
-\item[\textbf{RQ3}] Do conformal coverage guarantees hold under severe temporal distribution shift in SE data?
-\item[\textbf{RQ4}] Does the approach generalize across different bug tracking ecosystems and data conditions?
+\item[\textbf{RQ1}] When two architecturally different classifiers agree on a bug's assignment, does this agreement signal provide reliability information beyond what either model's confidence score captures alone?
+\item[\textbf{RQ2}] Can we exploit this cross-model agreement to produce more efficient conformal prediction sets---smaller shortlists when models agree, larger safety nets when they disagree?
+\item[\textbf{RQ3}] Do the formal coverage guarantees survive when the software project evolves significantly between the training period and deployment---spanning 15 years of API changes, framework evolution, and vocabulary shift?
+\item[\textbf{RQ4}] Does this approach generalize across different software ecosystems with different component taxonomies and data characteristics?
 \end{itemize}
 
 % ============================================================
@@ -104,6 +104,8 @@ We evaluate on Eclipse (30 components, 158K bugs), Mozilla Core (20 components, 
 \section{Background and Related Work}\label{sec:background}
 
 \subsection{Conformal Prediction}\label{sec:bg-cp}
+
+The core idea is simple. Train a model. Hold out a calibration set the model has never seen. For each calibration example, measure how ``surprised'' the model is by the true answer---this surprise is called a \emph{nonconformity score}. High surprise means the model found this example hard. Collect all the surprise scores and pick a threshold: the 90th percentile means ``be surprised enough to include the true answer 90\% of the time.'' At test time, include any class whose surprise score falls below the threshold. The result is a prediction set guaranteed to contain the correct answer with probability $\geq 1 - \alpha$.
 
 Split conformal prediction~\cite{vovk2005algorithmic} provides distribution-free prediction sets with finite-sample coverage guarantees. Given a calibration set $\calD_\text{cal} = \{(x_i, y_i)\}_{i=1}^{n}$, a trained classifier $f$, and a nonconformity score function $s(x,y)$ measuring how poorly $y$ conforms to $f$'s prediction for $x$, the conformal threshold is:
 \begin{equation}
@@ -114,6 +116,8 @@ The prediction set for a test point $x$ is $\calC(x) = \{y : s(x,y) \leq \hat{q}
 Adaptive Prediction Sets (APS)~\cite{romano2020classification} define the score as the cumulative probability mass needed to include the true class when iterating through classes in decreasing probability order. Regularized APS (RAPS)~\cite{angelopoulos2021uncertainty} adds a penalty $\lambda \cdot \max(0, j - k_\text{reg})$ for each class $j$ beyond rank $k_\text{reg}$, discouraging inclusion of low-ranked classes and producing 5--10$\times$ smaller sets than APS in practice.
 
 Mondrian conformal prediction~\cite{vovk2005algorithmic} partitions the calibration data into groups and computes a separate conformal threshold per group, yielding per-group coverage guarantees: $\PP(Y \in \calC(X) \mid G(X) = g) \geq 1 - \alpha$ for each group $g$. Gibbs et al.~\cite{gibbs2025conditional} formalize the general framework for conditional coverage through grouping functions. MACCP is an instantiation of this framework.
+
+Mondrian CP applies this procedure separately to different groups. Imagine splitting bugs into ``easy'' and ``hard'' piles. The easy pile gets its own tight threshold (small sets). The hard pile gets its own wide threshold (large sets). Both piles get their own 90\% guarantee---not just 90\% on average, but 90\% within each pile individually.
 
 \subsection{Conditional Coverage and Related Methods}
 
@@ -192,9 +196,11 @@ Fig.~\ref{fig:architecture} shows the MACCP pipeline. A bug report is processed 
 
 \textbf{XGBoost}~\cite{chen2016xgboost} processes TF-IDF features (500 dimensions from text) concatenated with engineered metadata: product encoding, creator bug count, severity, priority, operating system, platform, and component size computed from training data. We use 100 estimators with max depth 6.
 
-These models are maximally architecturally diverse. DeBERTa learns contextual token representations through self-attention. XGBoost learns decision boundaries through gradient-boosted trees over numerical and categorical features. Their inductive biases are fundamentally different, making their agreement a strong reliability signal.
+The choice of these two specific models is deliberate. DeBERTa captures what the bug report \emph{says}---the semantic content of crash descriptions, error messages, and reproduction steps. XGBoost captures the \emph{context} around the report---who filed it (reporters tend to file bugs in the same components), what product it belongs to (product strongly predicts component), and what severity was assigned. These are fundamentally different information channels. A crash report's text might mention ``rendering'' (suggesting the UI team), but the reporter might be a Platform team developer who always files platform bugs (suggesting Platform). When both channels point to the same answer, the evidence is strong. When they point to different answers, the bug is genuinely ambiguous. This architectural diversity is what makes the agreement signal informative---two models that process data identically would agree or disagree for the same reasons, providing no additional signal.
 
 \subsection{MACCP Formulation}\label{sec:maccp-formulation}
+
+The formulation is straightforward. Step~1: check if both models predict the same class. Step~2: split the calibration set into ``agree'' bugs and ``disagree'' bugs. Step~3: compute a separate conformal threshold for each group. Step~4: at test time, use the tight threshold when models agree, the wide threshold when they disagree. The equations below formalize these four steps.
 
 Let $f_1$ (DeBERTa) produce a probability distribution $\mathbf{p}_1(x) = (p_1^{(1)}(x), \ldots, p_1^{(K)}(x))$ over $K$ classes, and let $f_2$ (XGBoost) produce top-1 prediction $\hat{y}_2(x)$.
 
@@ -242,9 +248,11 @@ From Mondrian CP theory~\cite{vovk2005algorithmic}:
 
 This is an instantiation of the Gibbs et al.~\cite{gibbs2025conditional} conditional coverage framework with a binary grouping function. The theoretical guarantee holds under exchangeability within each group.
 
+\smallskip\noindent\textbf{Worked example.} A bug with Summary ``NPE in org.eclipse.debug.core.DebugPlugin'' is processed by both models. DeBERTa assigns 72\% probability to Debug and 15\% to Platform. XGBoost also predicts Debug. Since both agree, the system uses the agree threshold ($\hat{q}_{\text{agree}} = 0.953$ at $\alpha{=}0.10$). Walking down DeBERTa's probability ranking: Debug (0.72) + Platform (0.15) = 0.87 $<$ 0.953, so include both. Add Core (0.06): 0.93 $<$ 0.953, include. Add UI (0.04): 0.97 $>$ 0.953, stop. The prediction set is \{Debug, Platform, Core\}---three options instead of thirty, with a formal 90\% coverage guarantee.
+
 \subsection{Explanation Layer}
 
-A rule-based explanation generator attaches to each prediction: (i)~agreement status; (ii)~confidence tier (HIGH/MEDIUM/LOW); (iii)~reliability estimate citing historical accuracy of the partition; (iv)~top candidates from each model; and (v)~an action recommendation. Fig.~\ref{fig:explanation} shows examples for the agree and disagree paths.
+A rule-based explanation generator attaches to each prediction: (i)~agreement status; (ii)~confidence tier (HIGH/MEDIUM/LOW); (iii)~reliability estimate citing historical accuracy of the partition; (iv)~top candidates from each model; and (v)~an action recommendation. Fig.~\ref{fig:explanation} shows examples for the agree and disagree paths. We do not evaluate the explanation layer's impact on developer productivity---this requires a controlled user study with professional triagers and is left to future work. The explanations are deterministic and add zero inference overhead.
 
 \begin{figure}[t]
 \begin{lstlisting}[style=explbox]
@@ -300,7 +308,7 @@ ServiceNow  & 11 & 13{,}635 & 4{,}545 & 4{,}546 & 2016--2017 \\
 
 \textbf{Eclipse} (Zenodo 2024~\cite{lamkanfi2013eclipse}): 301K raw bugs reduced to 175K after noise filtering; top-30 components yield 158K bugs. Train period: 2001--2009, calibration: 2009--2014, test: 2014--2024.
 
-\textbf{Mozilla Core} (BugsRepo~\cite{acharya2025bugsrepo,lamkanfi2013}): 45{,}733 resolved Core-product bugs from Mozilla Bugzilla with top-20 components (JavaScript Engine, Layout, DOM, Editor, XPCOM, etc.). Summary text only (no description field). Temporal split by bug ID: train 28{,}964 / cal 8{,}289 / test 8{,}480.
+\textbf{Mozilla Core} (BugsRepo~\cite{acharya2025bugsrepo,lamkanfi2013eclipse}): 45{,}733 resolved Core-product bugs from Mozilla Bugzilla with top-20 components (JavaScript Engine, Layout, DOM, Editor, XPCOM, etc.). Summary text only (no description field). Temporal split by bug ID: train 28{,}964 / cal 8{,}289 / test 8{,}480.
 
 \textbf{ServiceNow} (UCI ML Repository): 22,726 IT incidents with 11 assignment group categories. No text fields available; only structured metadata (category, priority, impact, urgency). Train/cal/test split: 13,635 / 4,545 / 4,546.
 
@@ -358,6 +366,25 @@ $[0.85, 1.00)$ & 12{,}482 & 89.7\% & 46.6\% & +43.0$\pp$ \\
 \caption{Within-confidence-bin accuracy gaps (Eclipse). Even at the highest confidence ($\geq$0.85), XGBoost disagreement reduces accuracy by 43$\pp$.}
 \label{fig:agreement-gaps}
 \end{figure}
+
+\begin{table}[t]
+\caption{Within-confidence-bin accuracy gaps (Mozilla Core, 20 classes). Agreement provides 24--40$\pp$ accuracy improvement in the four lowest bins.}
+\label{tab:agreement-gaps-mozilla}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrccc@{}}
+\toprule
+\textbf{Confidence Bin} & $n$ & $n_\text{agree}$ & \textbf{Agree Acc.} & \textbf{Disagree Acc.} & \textbf{Gap} \\
+\midrule
+$[0.00, 0.30)$ & 3{,}232 & 375   & 50.4\% & 10.6\% & +39.8$\pp$ \\
+$[0.30, 0.50)$ & 2{,}422 & 541   & 62.8\% & 22.5\% & +40.4$\pp$ \\
+$[0.50, 0.70)$ & 903     & 236   & 65.3\% & 27.6\% & +37.7$\pp$ \\
+$[0.70, 0.85)$ & 349     & 174   & 90.2\% & 65.7\% & +24.5$\pp$ \\
+$[0.85, 1.00)$ & 1{,}574 & 950   & 93.3\% & 90.7\% & +2.6$\pp$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 Even at the highest confidence level (0.85--1.0), where DeBERTa is most certain, XGBoost disagreement still reduces accuracy by 43.0 percentage points. This demonstrates that cross-model agreement captures reliability information entirely independent of softmax confidence, consistent with ensemble diversity theory~\cite{kuncheva2003measures,dietterich2000ensemble} but never previously quantified for conformal prediction conditioning.
 
@@ -424,7 +451,11 @@ XGBoost RAPS achieves superior aggregate metrics (mean set size 3.12 vs.\ MACCP'
 
 AUGRC provides a threshold-free comparison: DeBERTa RAPS achieves 0.1644 [0.1611, 0.1676], XGBoost RAPS 0.1106, and MACCP 0.1384. The MACCP agree partition's operational value---61.2\% singletons at 90.0\% accuracy---is not captured by aggregate AUGRC, which treats all predictions equally.
 
+Per-class analysis reveals that MACCP is most effective on components with distinctive vocabulary. The top-5 components by DeBERTa F1 score are cdt-parser (0.802), SWT (0.723), BIRT (0.688), Core (0.668), and Releng (0.621)---all with specific technical terminology. The bottom-5 include UI (F1=0.450 despite being the largest class at 7,376 test bugs), which shares vocabulary with Core, Framework, and SWT. Even for the 56\% of bugs classified as NEEDS CAREFUL REVIEW, reducing 30 candidate components to a shortlist of approximately 8 represents a 73\% reduction in the developer's search space compared to unassisted triage.
+
 The calibrated MACCP thresholds confirm the mechanism: $\hat{q}_\text{agree} = 0.953$ and $\hat{q}_\text{disagree} = 1.016$ at $\alpha = 0.10$. The tighter agree threshold forces smaller, more precise sets; the wider disagree threshold produces conservative sets ensuring coverage despite low base accuracy.
+
+The calibration set partitions into 17,871 agree (59.5\%) and 12,146 disagree (40.5\%) samples. Two classes (Incubator and the deprecated Update component) have fewer than 20 samples in the agree partition. Conformal calibration for these rare classes may be unreliable; in practice, bugs in deprecated components would be handled by dedicated reclassification rules rather than the general triage system.
 
 % -- Mozilla Core placeholder --
 \smallskip\noindent\textit{Mozilla Core:} MACCP replicates. At $\alpha{=}0.10$, the agree partition (26.8\% of bugs) achieves mean set size 4.84 with 25.0\% singleton rate at 94.4\% singleton accuracy---compared to 0\% singletons for DeBERTa RAPS and 2.5\% for XGBoost RAPS at the same alpha. At $\alpha{=}0.20$, the agree partition achieves 45.8\% singletons at 93.2\% accuracy with mean set size 3.05, while DeBERTa RAPS produces only 18.3\% singletons. The effect is smaller than Eclipse (25\% vs 61\% singletons at $\alpha{=}0.10$) due to the lower base accuracy of both models (39\% and 36\% vs 54\% and 66\%), but the pattern is consistent: MACCP concentrates actionable predictions in the agree partition while correctly widening sets for uncertain cases.
@@ -471,6 +502,77 @@ The Eclipse-31 column includes the ``Other'' catch-all class, which grows from 2
 \vspace{0.5em}
 \noindent\fbox{\parbox{0.95\columnwidth}{\small\textbf{RQ3 Finding:} Conformal coverage guarantees hold within 1--3$\pp$ of nominal across all datasets and alpha levels, despite temporal splits spanning 15--23 years. This is an empirical observation under conditions that violate strict exchangeability.}}
 
+\subsection{Ablation Study}\label{sec:ablation}
+
+We ablate three design decisions in MACCP using Eclipse at $\alpha = 0.10$.
+
+\smallskip\noindent\textbf{Ablation 1: Agreement Definition.}
+Table~\ref{tab:ablation-agree-def} compares four definitions of cross-model agreement.
+
+\begin{table}[t]
+\caption{Ablation of agreement definition (Eclipse, $\alpha = 0.10$). Binary argmax achieves the best tradeoff between agreement quality and volume.}
+\label{tab:ablation-agree-def}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}lcccccl@{}}
+\toprule
+\textbf{Definition} & \textbf{Agr.\%} & \textbf{Agr.Acc} & \textbf{Cov.} & \textbf{Mean} & \textbf{Sing.\%} & \textbf{S.Acc} \\
+\midrule
+Binary argmax (ours) & 46.7 & 85.7 & 89.9 & 5.61 & 61.2 & 90.0 \\
+Top-2 overlap         & 63.3 & 72.0 & 88.9 & 5.45 & 49.1 & 86.0 \\
+Top-3 overlap         & 71.8 & 66.5 & 88.3 & 5.36 & 44.0 & 84.8 \\
+Cosine sim ($>$0.89)  & 34.1 & 88.0 & 90.4 & 5.88 & 68.7 & 91.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Binary argmax and cosine similarity produce the highest-quality agree groups (85.7\% and 88.0\% accuracy), while top-2 and top-3 overlap include more bugs at the cost of diluted reliability. Binary argmax achieves the best tradeoff: high agreement accuracy (85.7\%) with sufficient volume (46.7\%) and a 61.2\% singleton rate. Cosine similarity achieves marginally higher singleton rate (68.7\%) but at reduced volume (34.1\%), producing fewer total automated predictions. We use binary argmax for its simplicity and interpretability.
+
+\smallskip\noindent\textbf{Ablation 2: Primary Model.}
+Table~\ref{tab:ablation-primary} compares configurations where each model serves as the primary probability source.
+
+\begin{table}[t]
+\caption{Ablation of primary model choice (Eclipse, $\alpha = 0.10$). DeBERTa as primary maximizes agree-group singleton rate.}
+\label{tab:ablation-primary}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Config} & \textbf{Primary / Agreement} & \textbf{Cov.} & \textbf{Mean} & \textbf{Agr.Sing.} \\
+\midrule
+A (ours) & DeBERTa / XGBoost & 89.9\% & 5.62 & 61.5\% \\
+B (flipped) & XGBoost / DeBERTa & 94.6\% & 3.29 & 39.8\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Config~B (XGBoost as primary) achieves tighter overall sets (3.29 vs.\ 5.62) because XGBoost is more accurate (66.0\% vs.\ 54.5\%). However, Config~A produces more singletons in the agree group (61.5\% vs.\ 39.8\%), which is the operationally critical metric---singletons enable full automation. The choice of primary model trades off overall set compactness against agree-group singleton rate.
+
+\smallskip\noindent\textbf{Ablation 3: RAPS Regularization ($\lambda$).}
+Table~\ref{tab:ablation-lambda} shows the effect of the RAPS penalty parameter.
+
+\begin{table}[t]
+\caption{Ablation of RAPS $\lambda$ (Eclipse, $\alpha = 0.10$). Regularization shrinks overall sets with minimal impact on agree-group singletons.}
+\label{tab:ablation-lambda}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+$\lambda$ & \textbf{Cov.} & \textbf{Overall Mean} & \textbf{Agree Mean} & \textbf{Agree Sing.\%} \\
+\midrule
+0.00 (APS) & 92.0\% & 8.31 & 2.44 & 61.2\% \\
+0.01 (ours) & 89.9\% & 5.63 & 2.29 & 61.4\% \\
+0.05 & 88.6\% & 5.07 & 2.17 & 61.2\% \\
+0.10 & 88.2\% & 4.94 & 2.11 & 61.6\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+RAPS regularization ($\lambda > 0$) substantially reduces overall set sizes (8.31 to 4.94) with minimal impact on agree-group singleton rate (61.2--61.6\%). The singleton rate is robust to $\lambda$ because agree-group bugs are inherently easy---the regularization primarily shrinks the disagree-group sets. We use $\lambda = 0.01$ as a conservative default.
+
 \subsection{RQ4: Cross-Dataset Generalization}
 
 Table~\ref{tab:cross-dataset} summarizes results across all three datasets.
@@ -495,7 +597,7 @@ ServiceNow  & 11 & 46.3\% (XGB) & No$^*$ & N/A & Yes \\
 
 MACCP requires two competent base classifiers with architecturally diverse feature representations. On Eclipse (102K training samples with rich text and metadata), both models achieve sufficient accuracy for strong agreement signals (46.7\% agreement, 61.2\% singletons). On Mozilla Core (29K training samples, summary-only text), both models are weaker (39.1\% and 36.3\%) but MACCP still produces meaningful gains: 26.8\% agreement with 25.0\% singletons at 94.4\% accuracy in the agree partition. On ServiceNow, the absence of text fields precludes a second diverse model, so only single-model conformal prediction applies. Conformal prediction alone still provides valuable prediction sets: at $\alpha = 0.10$, ServiceNow achieves 91.6\% coverage with 14.1\% singletons at 96.2\% accuracy.
 
-The explanation generator on Eclipse partitions 25,499 test bugs into operational categories: AUTO-TRIAGE 7,296 (28.6\%), AUTO-TRIAGE WITH CAUTION 20 (0.1\%), REVIEW SHORTLIST 2,525 (9.9\%), REVIEW NEEDED 1,367 (5.4\%), and NEEDS CAREFUL REVIEW 14,291 (56.0\%). The 28.6\% auto-triage rate with 90\% accuracy represents a substantial reduction in manual triage workload.
+The explanation generator on Eclipse partitions 25,499 test bugs into operational categories: AUTO-TRIAGE 7,296 (28.6\%), AUTO-TRIAGE WITH CAUTION 20 (0.1\%), REVIEW SHORTLIST 2,525 (9.9\%), REVIEW NEEDED 1,367 (5.4\%), and NEEDS CAREFUL REVIEW 14,291 (56.0\%). The 28.6\% auto-triage rate with 90\% accuracy represents a substantial reduction in manual triage workload. Even for the 56\% careful-review group, reducing 30 candidate components to a shortlist of approximately 8 represents a 73\% reduction in the developer's search space compared to unassisted triage.
 
 \vspace{0.5em}
 \noindent\fbox{\parbox{0.95\columnwidth}{\small\textbf{RQ4 Finding:} Conformal prediction generalizes across all three SE triage ecosystems. MACCP replicates on both Eclipse (61.2\% singletons) and Mozilla Core (25.0\% singletons) with consistent agreement gaps. The effect scales with base model accuracy.}}
@@ -512,7 +614,7 @@ The MACCP framework partitions incoming bugs into three operational categories:
 \begin{itemize}
 \item \textbf{AUTO-TRIAGE (29\% of bugs):} Agree-group singletons. 90\% accuracy with formal coverage guarantee. Assign automatically with spot-check auditing.
 \item \textbf{REVIEW SHORTLIST (10\% of bugs):} Agree-group non-singletons. Mean set size 2.30. Developer picks from 2--3 options.
-\item \textbf{NEEDS CAREFUL REVIEW (56\% of bugs):} Disagree-group. Mean set size 8.52. Developer receives a shortlist with an uncertainty flag and both models' candidates.
+\item \textbf{NEEDS CAREFUL REVIEW (56\% of bugs):} Disagree-group. Mean set size 8.52. Developer receives a shortlist with an uncertainty flag and both models' candidates. Even here, reducing 30 candidate components to approximately 8 represents a 73\% reduction in the developer's search space compared to unassisted triage.
 \end{itemize}
 
 The rule-based explanation layer provides interpretable context for the shortlist and careful-review categories, surfacing each model's top prediction and the historical accuracy of the partition. Even for the careful-review group, reducing 30 candidate components to a shortlist of ${\sim}$8 represents meaningful effort reduction.
