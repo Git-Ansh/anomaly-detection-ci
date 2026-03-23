@@ -95,7 +95,7 @@ y_test = test_df["label"].values
 
 print(f"Training XGBoost on {X_train.shape[0]:,} samples, {X_train.shape[1]:,} features...")
 xgb = XGBClassifier(
-    n_estimators=300,
+    n_estimators=1000,
     max_depth=6,
     learning_rate=0.1,
     subsample=0.8,
@@ -103,6 +103,7 @@ xgb = XGBClassifier(
     random_state=42,
     n_jobs=-1,
     tree_method="hist",
+    early_stopping_rounds=30,
 )
 xgb.fit(X_train, y_train, eval_set=[(X_cal, y_cal)], verbose=50)
 
