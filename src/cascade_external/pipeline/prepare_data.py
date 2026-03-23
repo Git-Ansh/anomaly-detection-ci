@@ -184,6 +184,8 @@ def main():
                         help="Component/category column name")
     parser.add_argument("--summary_col", default="summary")
     parser.add_argument("--description_col", default="description")
+    parser.add_argument("--no_other", action="store_true",
+                        help="Drop samples outside top-K components instead of mapping to Other")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -227,11 +229,26 @@ def main():
     # ─── Label mapping (from TRAINING data only) ───
     print("\nCreating label mapping from training data...")
     label_map = create_label_mapping(train_df, args.component_col, args.top_k)
-    
+
+    if args.no_other:
+        # Drop "Other" from mapping and remove unmapped samples
+        label_map.pop("Other", None)
+        print(f"  --no_other: keeping only top-{args.top_k} components ({len(label_map)} classes)")
+
     # ─── Apply mapping to all splits ───
     train_df = apply_label_mapping(train_df, args.component_col, label_map)
     cal_df = apply_label_mapping(cal_df, args.component_col, label_map)
     test_df = apply_label_mapping(test_df, args.component_col, label_map)
+
+    if args.no_other:
+        for name in ["train", "cal", "test"]:
+            df_cur = {"train": train_df, "cal": cal_df, "test": test_df}[name]
+            before = len(df_cur)
+            df_cur = df_cur[df_cur["component_mapped"] != "Other"].copy()
+            if name == "train": train_df = df_cur
+            elif name == "cal": cal_df = df_cur
+            else: test_df = df_cur
+            print(f"    {name}: {before} -> {len(df_cur)} (dropped {before - len(df_cur)} Other)")
     
     # ─── Build text field ───
     print("\nBuilding text fields...")

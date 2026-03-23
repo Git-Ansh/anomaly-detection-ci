@@ -48,7 +48,8 @@ python -u src/cascade_external/pipeline/prepare_data.py \
     --date_col creation_time \
     --component_col component \
     --summary_col summary \
-    --description_col description
+    --description_col description \
+    --no_other
 
 if [ $? -ne 0 ]; then
     echo "FAILED: Data preparation"
