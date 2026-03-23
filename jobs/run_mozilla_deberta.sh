@@ -23,9 +23,9 @@ export TOKENIZERS_PARALLELISM=false
 PROJ_DIR=~/links/projects/aip-rnishat/shared/perf-regression-ci
 cd $PROJ_DIR
 
-DATA_DIR=$PROJ_DIR/data/mozilla_firefox
-MODEL_DIR=$SCRATCH/perf-regression-ci-outputs/deberta_mozilla
-RESULTS_DIR=$SCRATCH/perf-regression-ci-outputs/conformal_mozilla
+DATA_DIR=$PROJ_DIR/data/bugsrepo_firefox
+MODEL_DIR=$SCRATCH/perf-regression-ci-outputs/deberta_bugsrepo_firefox
+RESULTS_DIR=$SCRATCH/perf-regression-ci-outputs/conformal_bugsrepo_firefox
 
 # DeBERTa fine-tuning (7K train, small - will be fast)
 torchrun --nproc_per_node=4 src/cascade_external/pipeline/finetune_deberta.py \
