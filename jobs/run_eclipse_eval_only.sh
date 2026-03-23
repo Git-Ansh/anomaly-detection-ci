@@ -2,10 +2,10 @@
 #SBATCH --job-name=deberta_eval
 #SBATCH --account=aip-rnishat
 #SBATCH --partition=gpubase_bynode_b1
-#SBATCH --gpus-per-node=h100:1
+#SBATCH --gpus-per-node=h100:4
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=0
 #SBATCH --time=0:30:00
 #SBATCH --output=jobs/deberta_eval_%j.out
 #SBATCH --error=jobs/deberta_eval_%j.err
