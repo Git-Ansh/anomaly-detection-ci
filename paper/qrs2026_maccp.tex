@@ -556,7 +556,35 @@ The Eclipse-31 column includes the ``Other'' catch-all class, which grows from 2
 
 \subsection{Ablation Study}\label{sec:ablation}
 
-We ablate three design decisions in MACCP using Eclipse at $\alpha = 0.10$.
+\noindent\textbf{Design Space Comparison.}
+Table~\ref{tab:design-space} positions MACCP within the broader design space from selective prediction to conformal prediction.
+
+\begin{table}[t]
+\caption{Design space comparison (Eclipse, $\alpha = 0.10$). MACCP uniquely combines formal per-group coverage guarantees with the ability to identify reliable predictions.}
+\label{tab:design-space}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}lccccl@{}}
+\toprule
+\textbf{Approach} & \textbf{Guar.?} & \textbf{Cov.} & \textbf{Acc./Cov.} & \textbf{Mean} & \textbf{ID Rel.?} \\
+\midrule
+Softmax thr.          & No        & 12.8\%  & 90.0\% & 1 (pt) & No \\
+Ensemble vote         & No        & 100\%   & 67.1\% & 1 (pt) & Partial \\
+DeBERTa RAPS          & Marginal  & 87.3\%  & N/A    & 5.30   & No \\
+XGBoost RAPS          & Marginal  & 93.5\%  & N/A    & 3.12   & No \\
+MACCP (ours)          & Per-group & 89.9\%  & N/A    & 2.30$^*$ & \textbf{Yes} \\
+\bottomrule
+\multicolumn{6}{@{}l}{\scriptsize $^*$Agree partition; 61.2\% singletons at 90.0\% accuracy.}
+\end{tabular}
+\end{table}
+
+Softmax confidence thresholding achieves 90\% accuracy among retained predictions but retains only 12.8\% of bugs (requiring DeBERTa confidence $> 0.99$). It provides no formal coverage guarantee and discards the remaining 87\% entirely rather than providing shortlists. Ensemble voting improves overall accuracy to 67.1\% by selecting the higher-confidence model when predictions disagree, and the agree/disagree partition identifies reliable predictions (85.7\% vs.\ 50.7\%); however, it produces no set-valued output and no coverage guarantee. Single-model RAPS (DeBERTa or XGBoost) provides formal marginal coverage guarantees and useful prediction sets, but applies a uniform threshold that cannot distinguish easy from hard instances. MACCP combines reliability identification from ensemble agreement, formal coverage guarantees from conformal prediction, and per-group conditioning from Mondrian CP. The agree partition achieves the tightest sets (mean 2.30) with the highest singleton rate (61.2\%) of any configuration.
+
+We initially explored multi-stage cascade architectures with confidence gating between stages (e.g., noise filtering followed by component assignment). Empirical analysis revealed that upstream stage predictions provide no additional signal to downstream stages when both share text features, a conditional independence result that motivated the shift to parallel cross-model agreement rather than sequential information passing.
+
+\smallskip
+We next ablate three design decisions in MACCP using Eclipse at $\alpha = 0.10$.
 
 \smallskip\noindent\textbf{Ablation 1: Agreement Definition.}
 Table~\ref{tab:ablation-agree-def} compares four definitions of cross-model agreement.
@@ -661,15 +689,7 @@ The explanation generator on Eclipse partitions 25,499 test bugs into operationa
 
 \subsection{Practical Implications}
 
-The MACCP framework partitions incoming bugs into three operational categories:
-
-\begin{itemize}
-\item \textbf{AUTO-TRIAGE (29\% of bugs):} Agree-group singletons. 90\% accuracy with formal coverage guarantee. Assign automatically with spot-check auditing. The 10\% error rate among auto-triaged singletons necessitates periodic quality checks; however, this is substantially lower than the 37--44\% human triager misassignment rate~\cite{jeong2009improving}.
-\item \textbf{REVIEW SHORTLIST (10\% of bugs):} Agree-group non-singletons. Mean set size 2.30. Developer picks from 2--3 options.
-\item \textbf{NEEDS CAREFUL REVIEW (56\% of bugs):} Disagree-group. Mean set size 8.52. Developer receives a shortlist with an uncertainty flag and both models' candidates (see search space reduction in Section~\ref{sec:rq2}).
-\end{itemize}
-
-The rule-based explanation layer provides interpretable context for the shortlist and careful-review categories, surfacing each model's top prediction and the historical accuracy of the partition.
+MACCP partitions bugs into three tiers: AUTO-TRIAGE (29\%, agree singletons at 90\% accuracy), REVIEW SHORTLIST (10\%, agree non-singletons, developer picks from 2--3 options), and NEEDS CAREFUL REVIEW (56\%, disagree group, mean set size 8.52). The 10\% error rate among auto-triaged singletons is substantially lower than the 37--44\% human triager misassignment rate~\cite{jeong2009improving}. A rule-based explanation layer surfaces each model's top prediction and the historical accuracy of the partition.
 
 \subsection{Cost-Benefit Analysis}
 
@@ -679,7 +699,7 @@ We acknowledge that these results are specific to open-source Bugzilla-based pro
 
 \subsection{Why Metadata XGBoost Outperforms DeBERTa}
 
-XGBoost achieves 66.0\% test accuracy versus DeBERTa's 54.5\% under the 15-year temporal split. Metadata features (product encoding, reporter history) are temporally invariant, in that a bug filed under ``Platform'' product carries the same signal in 2005 and 2020. Text vocabulary drifts substantially: API names, framework references, and coding paradigms evolve. This finding is consistent with Grinsztajn et al.~\cite{grinsztajn2022tree} showing tree-based models outperform deep learning on tabular data, and extends it to a temporal shift setting. The practical implication: in long-lived software projects, metadata-based models may be more reliable than text-based models for triage.
+XGBoost achieves 66.0\% versus DeBERTa's 54.5\% under the 15-year temporal split because metadata features (product encoding, reporter history) are temporally invariant, while text vocabulary drifts substantially. This extends Grinsztajn et al.~\cite{grinsztajn2022tree} to a temporal shift setting: in long-lived software projects, metadata-based models may be more reliable than text-based models for triage.
 
 \subsection{Threats to Validity}
 
