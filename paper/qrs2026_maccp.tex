@@ -71,7 +71,7 @@ Conformal prediction, bug triage, prediction sets, cross-model agreement, softwa
 % ============================================================
 \section{Introduction}\label{sec:intro}
 
-In large-scale software projects, incoming bug reports must be assigned to the correct development team for resolution, a process called bug triage. Eclipse, an open-source IDE with over 300,000 filed bug reports, distributes work across 30 component teams. Misrouting is common and costly: Jeong et al.~\cite{jeong2009improving} found that 37--44\% of bugs in Mozilla and Eclipse undergo at least one reassignment, each adding days to the resolution timeline.
+In large-scale software projects, incoming bug reports must be assigned to the correct development team for resolution, a process called bug triage. Eclipse, an open-source IDE with over 300{,}000 filed bug reports~\cite{lamkanfi2013eclipse}, distributes work across 30 component teams. Misrouting is common and costly: Jeong et al.~\cite{jeong2009improving} found that 37--44\% of bugs in Mozilla and Eclipse undergo at least one reassignment, each adding days to the resolution timeline.
 
 Machine learning can automate this decision, but current approaches~\cite{anvik2006should,xia2017elm,dipongkor2023transformer,chen2025triangle,xu2026whatscode} provide a single answer, ``Platform team,'' with no way to know whether to trust it. When the model is wrong, the misrouted bug wastes even more time than manual triage.
 
@@ -198,7 +198,7 @@ Fig.~\ref{fig:architecture} shows the MACCP pipeline. A bug report is processed 
 
 \textbf{XGBoost}~\cite{chen2016xgboost} processes TF-IDF features (500 dimensions from text) concatenated with engineered metadata: product encoding, creator bug count, severity, priority, operating system, platform, and component size computed from training data. We use 100 estimators with max depth 6.
 
-The choice of these two specific models is deliberate. DeBERTa captures what the bug report \emph{says}: the semantic content of crash descriptions, error messages, and reproduction steps. XGBoost captures the \emph{context} around the report: who filed it (reporters tend to file bugs in the same components), what product it belongs to (product strongly predicts component), and what severity was assigned. These are fundamentally different information channels. A crash report's text might mention ``rendering'' (suggesting the UI team), but the reporter might be a Platform team developer who always files platform bugs (suggesting Platform). When both channels point to the same answer, the evidence is strong. When they point to different answers, the bug is genuinely ambiguous. This architectural diversity is what makes the agreement signal informative; two models that process data identically would agree or disagree for the same reasons, providing no additional signal.
+The choice of these two specific models is deliberate. DeBERTa captures what the bug report \emph{says}: the semantic content of crash descriptions, error messages, and reproduction steps. XGBoost captures the \emph{context} around the report: who filed it (reporter identity correlates with component assignment, as individual developers tend to work within specific subsystems), what product it belongs to (product strongly predicts component), and what severity was assigned. These are fundamentally different information channels. A crash report's text might mention ``rendering'' (suggesting the UI team), but the reporter might be a Platform team developer who always files platform bugs (suggesting Platform). When both channels point to the same answer, the evidence is strong. When they point to different answers, the bug is genuinely ambiguous. This architectural diversity is what makes the agreement signal informative; two models that process data identically would agree or disagree for the same reasons, providing no additional signal.
 
 \subsection{MACCP Formulation}\label{sec:maccp-formulation}
 
@@ -689,13 +689,13 @@ The explanation generator on Eclipse partitions 25,499 test bugs into operationa
 
 \subsection{Practical Implications}
 
-As detailed in Section~\ref{sec:rq2} and Section~\ref{sec:ablation}, the framework partitions bugs into three operational tiers: full automation via agree-group singletons (29\% at 90\% accuracy), shortlist review via agree-group non-singletons (10\%, mean set size 2.30), and careful review with uncertainty context via the disagree group (56\%, mean set size 8.52). The 10\% error rate among auto-triaged singletons remains well below the 37--44\% human triager misassignment rate~\cite{jeong2009improving}.
+As detailed in Section~\ref{sec:rq2} and Section~\ref{sec:ablation}, the framework partitions bugs into three operational tiers: full automation via agree-group singletons (29\% at 90\% accuracy), shortlist review via agree-group non-singletons (10\%, mean set size 2.30), and careful review with uncertainty context via the disagree group (56\%, mean set size 8.52). The 10\% error rate among auto-triaged singletons compares favorably to the 37--44\% bug reassignment rate reported by Jeong et al.~\cite{jeong2009improving}, though we note that reassignment is not synonymous with initial misassignment --- some reassignments reflect organizational changes rather than routing errors.
 
 \subsection{Cost-Benefit Analysis}
 
 Maintaining two diverse classifiers has engineering overhead, and whether MACCP's 29\% automation rate justifies that cost depends on triage volume. With XGBoost RAPS alone, 20.1\% of predictions are singletons at 93.6\% accuracy. MACCP adds 9 percentage points of automation (29\% vs 20\%) at the cost of deploying a transformer model.
 
-At Eclipse's scale of roughly 100 bugs per day, DeBERTa inference totals about 5 seconds of daily GPU time. A single cloud GPU instance at \$0.35/hour absorbs this within spare cycles, making the infrastructure cost negligible. At enterprise scale (1,000 bugs/day), the 290 daily auto-triaged bugs each save an estimated 5 minutes of triager effort, yielding approximately 24 person-hours of daily savings --- costs a dedicated GPU endpoint at \$1,000--2,000/month recovers within hours of operation. The breakeven sits at roughly 50 bugs per day; below that threshold, the engineering effort of maintaining a deployed transformer outweighs the triage time saved, a tradeoff we weighed during deployment scenario analysis and one that led us to position single-model XGBoost RAPS as a GPU-free alternative with modestly lower automation (20.1\% vs 29\% singletons). Batch processing workflows, common in bug triage where reports accumulate in queues, eliminate the 50ms per-prediction latency concern entirely.
+At Eclipse's scale of roughly 100 bugs per day, DeBERTa inference totals about 5 seconds of daily GPU time --- absorbed within spare cycles on any commodity cloud GPU instance. At enterprise scale (1,000 bugs/day), the 290 daily auto-triaged bugs each eliminate a manual classification decision, and since triage of a 30-component bug report typically involves reading the report, consulting team ownership documentation, and making a routing judgment, the aggregate time savings at enterprise volume quickly dominate infrastructure costs. Below a certain volume threshold that depends on local GPU costs and engineer salaries, single-model XGBoost RAPS becomes the more practical choice --- a tradeoff we arrived at after evaluating deployment scenarios, which led us to position XGBoost RAPS as a GPU-free alternative with modestly lower automation (20.1\% vs 29\% singletons). Batch processing workflows, common in bug triage where reports accumulate in queues, eliminate per-prediction latency concerns entirely; DeBERTa inference runs on the order of tens of milliseconds per prediction on modern GPU hardware.
 
 The conformal prediction and agreement conditioning mechanisms are model-agnostic: they apply to any pair of diverse classifiers, including large language models. An LLM-based text classifier would plausibly achieve higher base accuracy than DeBERTa, though the magnitude depends on the specific LLM's exposure to software engineering terminology during pretraining and its behavior under temporal domain shift --- factors we have not evaluated. Higher base accuracy would mechanically produce tighter conformal sets and higher singleton rates; the coverage guarantee holds regardless. The choice of base classifiers represents an accuracy-cost tradeoff orthogonal to MACCP itself.
 
@@ -724,41 +724,13 @@ Singleton accuracy measures the automated component of the framework but does no
 % VII. OPERATIONAL WORKFLOW
 % ============================================================
 
-Fig.~\ref{fig:workflow} shows how MACCP integrates into a development team's triage workflow.
+The operational workflow follows Fig.~\ref{fig:architecture}: agree-group singletons are auto-triaged, agree-group non-singletons produce a 2--3 option shortlist, and disagree-group bugs are flagged for careful review with both models' candidates.
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[
-  node distance=0.35cm and 0.4cm,
-  box/.style={draw, rounded corners=2pt, minimum height=0.5cm,
-              minimum width=1.8cm, font=\scriptsize, align=center},
-  arr/.style={-{Stealth[length=2mm]}, thick},
-]
-% Input
-\node[box, fill=gray!15] (bug) {New Bug\\Report};
-\node[box, fill=blue!10, below=0.4cm of bug] (maccp) {MACCP\\System};
-
-% Three outputs
-\node[box, fill=green!20, below left=0.6cm and 0.6cm of maccp] (auto) {AUTO-TRIAGE\\(29\%)};
-\node[box, fill=yellow!20, below=0.6cm of maccp] (short) {SHORTLIST\\(10\%)};
-\node[box, fill=red!12, below right=0.6cm and 0.6cm of maccp] (review) {CAREFUL\\REVIEW (56\%)};
-
-% Destinations
-\node[box, fill=green!30, below=0.35cm of auto] (team) {Assigned\\Team};
-\node[box, fill=yellow!30, below=0.35cm of short] (dev1) {Developer\\picks from 2--3};
-\node[box, fill=red!15, below=0.35cm of review] (dev2) {Developer\\reviews 8+};
-
-% Arrows
-\draw[arr] (bug) -- (maccp);
-\draw[arr] (maccp) -- (auto);
-\draw[arr] (maccp) -- (short);
-\draw[arr] (maccp) -- (review);
-\draw[arr] (auto) -- (team);
-\draw[arr] (short) -- (dev1);
-\draw[arr] (review) -- (dev2);
-\end{tikzpicture}
-\caption{Operational workflow. MACCP routes bugs into three tiers: 29\% are auto-triaged (agree singletons at 90\% accuracy), 10\% receive a short shortlist, and 56\% are flagged for careful review with uncertainty context.}
-\label{fig:workflow}
+\includegraphics[width=\columnwidth]{figures/agreement_gaps_mozilla.pdf}
+\caption{Within-confidence-bin accuracy gaps (Mozilla Core, 20 classes). The pattern from Eclipse (Fig.~\ref{fig:agreement-gaps}) replicates: agreement provides 25--40$\pp$ accuracy improvement in the four lowest bins. The gap narrows to 2.6$\pp$ in the highest bin, where DeBERTa already achieves 90.7\% regardless of agreement.}
+\label{fig:mozilla-gaps}
 \end{figure}
 
 % ============================================================
