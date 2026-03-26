@@ -43,7 +43,7 @@ from utils import (
 # ============================================================
 # Configuration
 # ============================================================
-MODEL_NAME = "Qwen/Qwen2.5-32B-Instruct"
+MODEL_NAME = os.environ.get("QWEN_MODEL_PATH", "Qwen/Qwen2.5-32B-Instruct")
 MAX_LENGTH = 512
 LEARNING_RATE = 2e-4
 BATCH_SIZE = 2

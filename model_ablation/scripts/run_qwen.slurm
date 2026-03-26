@@ -19,6 +19,7 @@ source $SCRATCH/venv_cascade/bin/activate
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
+export QWEN_MODEL_PATH=/scratch/a/anshshah/qwen_manual
 
 PROJ_DIR=~/links/projects/aip-rnishat/shared/perf-regression-ci
 cd $PROJ_DIR
