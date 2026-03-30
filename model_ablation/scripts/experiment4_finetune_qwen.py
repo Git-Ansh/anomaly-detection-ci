@@ -374,6 +374,7 @@ def train_and_evaluate(dataset_name):
         MODEL_NAME,
         torch_dtype=torch.bfloat16,
         trust_remote_code=True,
+        device_map="auto",
     )
 
     # Enable gradient checkpointing
