@@ -28,10 +28,10 @@ python -c "import torch; print(f'GPUs: {torch.cuda.device_count()}, VRAM: {torch
 
 # Train on Eclipse
 echo "=== Eclipse ==="
-python -u model_ablation/scripts/experiment4_finetune_qwen.py --dataset eclipse
+deepspeed --num_gpus=4 model_ablation/scripts/experiment4_finetune_qwen.py --dataset eclipse
 
 # Train on Mozilla
 echo "=== Mozilla ==="
-python -u model_ablation/scripts/experiment4_finetune_qwen.py --dataset mozilla
+deepspeed --num_gpus=4 model_ablation/scripts/experiment4_finetune_qwen.py --dataset mozilla
 
 echo "=== Done: $(date) ==="

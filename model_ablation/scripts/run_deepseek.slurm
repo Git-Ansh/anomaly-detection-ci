@@ -27,9 +27,9 @@ cd $PROJ_DIR
 python -c "import torch; print(f'GPUs: {torch.cuda.device_count()}')"
 
 echo "=== Eclipse ==="
-python -u model_ablation/scripts/experiment4_finetune_qwen.py --dataset eclipse
+deepspeed --num_gpus=4 model_ablation/scripts/experiment4_finetune_qwen.py --dataset eclipse
 
 echo "=== Mozilla ==="
-python -u model_ablation/scripts/experiment4_finetune_qwen.py --dataset mozilla
+deepspeed --num_gpus=4 model_ablation/scripts/experiment4_finetune_qwen.py --dataset mozilla
 
 echo "=== Done: $(date) ==="
