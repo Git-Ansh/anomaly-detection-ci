@@ -570,6 +570,7 @@ def main():
         "--dataset", required=True, choices=["eclipse", "mozilla"],
         help="Dataset to fine-tune on",
     )
+    parser.add_argument("--local_rank", type=int, default=-1, help="DeepSpeed local rank")
     args = parser.parse_args()
 
     print("=" * 70)

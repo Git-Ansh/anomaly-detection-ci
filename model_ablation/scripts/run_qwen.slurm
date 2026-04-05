@@ -24,7 +24,7 @@ export QWEN_MODEL_PATH=/scratch/a/anshshah/qwen_manual
 PROJ_DIR=~/links/projects/aip-rnishat/shared/perf-regression-ci
 cd $PROJ_DIR
 
-python -c "import torch; print(f'GPUs: {torch.cuda.device_count()}, VRAM: {torch.cuda.get_device_properties(0).total_mem/1e9:.0f}GB')"
+python -c "import torch; print(f'GPUs: {torch.cuda.device_count()}, VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.0f}GB')"
 
 # Train on Eclipse
 echo "=== Eclipse ==="
