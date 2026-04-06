@@ -13,8 +13,8 @@ Usage:
     python run_mozilla_core_maccp.py
 
 Requires:
-    - cascade_external_outputs/mozilla_core/deberta/{cal,test}_{probs,labels,preds}.npy
-    - cascade_external_outputs/mozilla_core/xgb_{cal,test}_{probs,labels,preds}.npy
+    - conformal_outputs/mozilla_core/deberta/{cal,test}_{probs,labels,preds}.npy
+    - conformal_outputs/mozilla_core/xgb_{cal,test}_{probs,labels,preds}.npy
     - data/mozilla_core/label_mapping.json
 """
 
@@ -30,9 +30,9 @@ np.random.seed(42)
 
 # ---- Paths ----
 DATA_DIR = Path("data/mozilla_core")
-DEB_DIR = Path("cascade_external_outputs/mozilla_core/deberta")
-XGB_DIR = Path("cascade_external_outputs/mozilla_core")
-OUTPUT_DIR = Path("cascade_external_outputs/mozilla_core/results")
+DEB_DIR = Path("conformal_outputs/mozilla_core/deberta")
+XGB_DIR = Path("conformal_outputs/mozilla_core")
+OUTPUT_DIR = Path("conformal_outputs/mozilla_core/results")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---- Load data ----

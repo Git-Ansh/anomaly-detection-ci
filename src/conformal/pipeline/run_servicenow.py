@@ -29,13 +29,13 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 from cascade.framework.confidence_stage import ConfidenceStage
-from cascade_external.data.servicenow_loader import prepare_servicenow_data
-from cascade_external.stages.servicenow_config import (
+from conformal.data.servicenow_loader import prepare_servicenow_data
+from conformal.stages.servicenow_config import (
     prepare_stage_0_data, prepare_stage_1_data, prepare_stage_2_data,
     PRIORITY_CLASSES,
 )
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'servicenow'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'servicenow'
 
 
 def run_servicenow_cascade(

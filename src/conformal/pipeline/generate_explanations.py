@@ -2,11 +2,11 @@
 generate_explanations.py -- Generate example MACCP explanations and summary statistics.
 
 Produces:
-  cascade_external_outputs/maccp_results/example_explanations.json   (10 examples)
-  cascade_external_outputs/maccp_results/explanation_summary.json    (full test-set stats)
+  conformal_outputs/maccp_results/example_explanations.json   (10 examples)
+  conformal_outputs/maccp_results/explanation_summary.json    (full test-set stats)
 
 Run with:
-  PYTHONUNBUFFERED=1 venv/Scripts/python.exe -u src/cascade_external/pipeline/generate_explanations.py
+  PYTHONUNBUFFERED=1 venv/Scripts/python.exe -u src/conformal/pipeline/generate_explanations.py
 """
 
 import json
@@ -22,11 +22,11 @@ import numpy as np
 BASE = Path(os.environ.get("PROJECT_ROOT", "."))
 sys.path.insert(0, str(BASE))
 
-from src.cascade_external.explanation_generator import TriageExplanationGenerator
+from src.conformal.explanation_generator import TriageExplanationGenerator
 
-DATA_DIR = BASE / "cascade_external_outputs" / "eclipse_no_other"
-DEBERTA_DIR = BASE / "cascade_external_outputs" / "deberta_no_other"
-MACCP_DIR = BASE / "cascade_external_outputs" / "maccp_results"
+DATA_DIR = BASE / "conformal_outputs" / "eclipse_no_other"
+DEBERTA_DIR = BASE / "conformal_outputs" / "deberta_no_other"
+MACCP_DIR = BASE / "conformal_outputs" / "maccp_results"
 OUTPUT_DIR = MACCP_DIR
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -8,7 +8,7 @@ For each dataset, runs:
   4. Flat XGBoost (no confidence gating)
 
 All baselines use the same features and train/test split as the cascade.
-Results saved to cascade_external_outputs/{dataset}/baselines.json.
+Results saved to conformal_outputs/{dataset}/baselines.json.
 """
 
 import sys
@@ -32,7 +32,7 @@ try:
 except ImportError:
     HAS_XGBOOST = False
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs'
 
 
 def _detect_gpu():
@@ -176,7 +176,7 @@ def run_all_baselines():
     """Run baselines for all available datasets."""
     # JM1
     try:
-        from cascade_external.data.jm1_loader import load_jm1_data
+        from conformal.data.jm1_loader import load_jm1_data
         data = load_jm1_data()
         train_df = data['train_df']
         test_df = data['test_df']
@@ -193,8 +193,8 @@ def run_all_baselines():
 
     # Eclipse
     try:
-        from cascade_external.data.eclipse_loader import prepare_eclipse_data
-        from cascade_external.stages.eclipse_config import prepare_stage_0_data
+        from conformal.data.eclipse_loader import prepare_eclipse_data
+        from conformal.stages.eclipse_config import prepare_stage_0_data
         data = prepare_eclipse_data()
         s0_data = prepare_stage_0_data(
             data['train_df'], data['test_df'],

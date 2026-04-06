@@ -40,7 +40,7 @@ RESULTS_DIR=$SCRATCH/perf-regression-ci-outputs/conformal_eclipse
 # ─── Step 1: Prepare data (60/20/20 temporal split + label mapping) ───
 echo ""
 echo "=== Step 1: Preparing Data ==="
-python -u src/cascade_external/pipeline/prepare_data.py \
+python -u src/conformal/pipeline/prepare_data.py \
     --data_dir $DATA_DIR \
     --output_dir $PROCESSED_DIR \
     --top_k 30 \
@@ -59,7 +59,7 @@ fi
 # ─── Step 2: Fine-tune DeBERTa (4x H100 via torchrun) ───
 echo ""
 echo "=== Step 2: Fine-tuning DeBERTa ==="
-torchrun --nproc_per_node=4 src/cascade_external/pipeline/finetune_deberta.py \
+torchrun --nproc_per_node=4 src/conformal/pipeline/finetune_deberta.py \
     --data_dir $PROCESSED_DIR \
     --output_dir $MODEL_DIR \
     --model_name microsoft/deberta-v3-base \
@@ -78,7 +78,7 @@ fi
 # ─── Step 3: Conformal prediction on DeBERTa outputs ───
 echo ""
 echo "=== Step 3: Conformal Prediction ==="
-python -u src/cascade_external/pipeline/run_conformal.py \
+python -u src/conformal/pipeline/run_conformal.py \
     --model_dir $MODEL_DIR \
     --data_dir $PROCESSED_DIR \
     --output_dir $RESULTS_DIR \

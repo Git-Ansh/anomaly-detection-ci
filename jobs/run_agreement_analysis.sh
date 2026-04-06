@@ -27,7 +27,7 @@ export ECLIPSE_DATA_DIR=$SCRATCH/perf-regression-ci-outputs/eclipse_processed
 export DEBERTA_DIR=$SCRATCH/perf-regression-ci-outputs/deberta_eclipse
 export OUTPUT_DIR=$SCRATCH/perf-regression-ci-outputs/agreement_analysis
 
-python -u src/cascade_external/pipeline/run_xgb_agreement_analysis.py
+python -u src/conformal/pipeline/run_xgb_agreement_analysis.py
 
 echo "=== Done ==="
 echo "Date: $(date)"

@@ -121,7 +121,7 @@ fi
 # Run conformal prediction
 echo ""
 echo "=== Conformal Prediction ==="
-python -u src/cascade_external/pipeline/run_conformal.py \
+python -u src/conformal/pipeline/run_conformal.py \
     --model_dir $MODEL_DIR \
     --data_dir $PROCESSED_DIR \
     --output_dir $RESULTS_DIR \

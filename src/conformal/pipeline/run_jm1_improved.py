@@ -5,9 +5,9 @@ Systematically improves JM1 defect prediction recall and provides
 statistical rigor + LLM rescue for deferred items.
 
 Usage:
-    python src/cascade_external/pipeline/run_jm1_improved.py
-    python src/cascade_external/pipeline/run_jm1_improved.py --skip-llm
-    python src/cascade_external/pipeline/run_jm1_improved.py --llm-dry-run
+    python src/conformal/pipeline/run_jm1_improved.py
+    python src/conformal/pipeline/run_jm1_improved.py --skip-llm
+    python src/conformal/pipeline/run_jm1_improved.py --llm-dry-run
 """
 
 import sys
@@ -37,10 +37,10 @@ from cascade.evaluation.bootstrap import (
     bootstrap_metric, bootstrap_accuracy, mcnemar_test,
     bootstrap_coverage_accuracy, bootstrap_cascade_results
 )
-from cascade_external.data.jm1_loader import load_jm1_data, JM1_FEATURES
-from cascade_external.stages.jm1_config import JM1_CLASSES
+from conformal.data.jm1_loader import load_jm1_data, JM1_FEATURES
+from conformal.stages.jm1_config import JM1_CLASSES
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'jm1'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'jm1'
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 RANDOM_SEED = 42
@@ -441,7 +441,7 @@ def run_llm_rescue(test_df, test_X, test_y, is_deferred, feature_cols,
 
     try:
         sys.path.insert(0, str(PROJECT_ROOT / 'src'))
-        from cascade_external.llm.llm_classifier import LLMClassifier
+        from conformal.llm.llm_classifier import LLMClassifier
 
         clf = LLMClassifier(
             task_description=(

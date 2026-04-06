@@ -27,7 +27,7 @@ Models tested per sub-stage:
 Also runs monolithic S0 (current approach) for comparison.
 
 Usage:
-    python src/cascade_external/pipeline/run_eclipse_s0_experiment.py
+    python src/conformal/pipeline/run_eclipse_s0_experiment.py
 """
 
 import sys
@@ -59,9 +59,9 @@ warnings.filterwarnings('ignore')
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
-from cascade_external.data.eclipse_zenodo_loader import prepare_eclipse_zenodo_data
+from conformal.data.eclipse_zenodo_loader import prepare_eclipse_zenodo_data
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'eclipse' / 's0_experiment'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'eclipse' / 's0_experiment'
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 FIG_DIR = OUTPUT_DIR / 'figures'
 FIG_DIR.mkdir(parents=True, exist_ok=True)

@@ -5,7 +5,7 @@ Deterministic rule-based text generation (NOT an LLM).
 Designed for the Model-Agreement-Conditioned Conformal Prediction (MACCP) system.
 
 Usage:
-    from src.cascade_external.explanation_generator import TriageExplanationGenerator
+    from src.conformal.explanation_generator import TriageExplanationGenerator
 
     gen = TriageExplanationGenerator(label_map)
     explanation = gen.explain(

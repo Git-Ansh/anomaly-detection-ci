@@ -28,7 +28,7 @@ MODEL_DIR=$SCRATCH/perf-regression-ci-outputs/deberta_bugsrepo_firefox
 RESULTS_DIR=$SCRATCH/perf-regression-ci-outputs/conformal_bugsrepo_firefox
 
 # DeBERTa fine-tuning (7K train, small - will be fast)
-torchrun --nproc_per_node=4 src/cascade_external/pipeline/finetune_deberta.py \
+torchrun --nproc_per_node=4 src/conformal/pipeline/finetune_deberta.py \
     --data_dir $DATA_DIR \
     --output_dir $MODEL_DIR \
     --model_name microsoft/deberta-v3-base \
@@ -45,7 +45,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Conformal prediction
-python -u src/cascade_external/pipeline/run_conformal.py \
+python -u src/conformal/pipeline/run_conformal.py \
     --model_dir $MODEL_DIR \
     --data_dir $DATA_DIR \
     --output_dir $RESULTS_DIR \

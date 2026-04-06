@@ -33,15 +33,15 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from cascade.framework.confidence_stage import ConfidenceStage
-from cascade_external.data.eclipse_loader import prepare_eclipse_data
-from cascade_external.stages.eclipse_config import (
+from conformal.data.eclipse_loader import prepare_eclipse_data
+from conformal.stages.eclipse_config import (
     prepare_stage_2_data,
     SEVERITY_CLASSES,
 )
-from cascade_external.llm.fireworks_client import FireworksClient
-from cascade_external.llm.llm_classifier import LLMClassifier
+from conformal.llm.fireworks_client import FireworksClient
+from conformal.llm.llm_classifier import LLMClassifier
 
-OUTPUT_DIR = PROJECT_ROOT / "cascade_external_outputs" / "eclipse"
+OUTPUT_DIR = PROJECT_ROOT / "conformal_outputs" / "eclipse"
 
 
 def run_llm_component_classification(

@@ -67,7 +67,7 @@ mkdir -p $SCRATCH/perf-regression-ci-outputs/servicenow
 mkdir -p $SCRATCH/perf-regression-ci-outputs/mozilla
 
 # Only create symlinks if they don't exist
-[ ! -L cascade_external_outputs ] && ln -s $SCRATCH/perf-regression-ci-outputs cascade_external_outputs 2>/dev/null
+[ ! -L conformal_outputs ] && ln -s $SCRATCH/perf-regression-ci-outputs conformal_outputs 2>/dev/null
 [ ! -L cascade_outputs ] && ln -s $SCRATCH/perf-regression-ci-outputs/mozilla cascade_outputs 2>/dev/null
 
 echo ""

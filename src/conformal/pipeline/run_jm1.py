@@ -22,10 +22,10 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 from cascade.framework.confidence_stage import ConfidenceStage
-from cascade_external.data.jm1_loader import load_jm1_data
-from cascade_external.stages.jm1_config import JM1_CLASSES
+from conformal.data.jm1_loader import load_jm1_data
+from conformal.stages.jm1_config import JM1_CLASSES
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'jm1'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'jm1'
 
 
 def run_jm1_cascade(

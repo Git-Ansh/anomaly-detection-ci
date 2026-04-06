@@ -30,7 +30,7 @@ cd $PROJ_DIR
 python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, GPUs: {torch.cuda.device_count()}')"
 
 # Run experiment
-python -u src/cascade_external/pipeline/run_eclipse_s0_experiment.py
+python -u src/conformal/pipeline/run_eclipse_s0_experiment.py
 
 echo "=== Done ==="
 echo "Date: $(date)"

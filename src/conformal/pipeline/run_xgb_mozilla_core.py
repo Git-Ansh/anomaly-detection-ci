@@ -29,7 +29,7 @@ except ImportError:
 
 # ---- Paths ----
 DATA_DIR = Path("data/mozilla_core")
-OUTPUT_DIR = Path("cascade_external_outputs/mozilla_core")
+OUTPUT_DIR = Path("conformal_outputs/mozilla_core")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---- Load data ----

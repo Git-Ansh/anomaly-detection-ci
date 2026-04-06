@@ -37,12 +37,9 @@ paper/                          # QRS 2026 paper
   generate_qrs_figures.py       # Figure generation script
 
 src/                            # Source code
-  cascade/                      # Cascade triage framework
-    framework/                  # GeneralCascade, ConfidenceStage
-    stages/                     # Mozilla Perfherder stage implementations
-    pipeline/                   # Entry points
-    evaluation/                 # Metrics, bootstrap CIs
-  cascade_external/             # External dataset validation
+  cascade_legacy/               # Legacy cascade framework (not used in paper)
+  common/                       # Shared utilities
+  conformal/                    # MACCP conformal prediction framework
     data/                       # Dataset loaders (Eclipse, ServiceNow, Mozilla)
     stages/                     # Per-dataset stage configs
     pipeline/                   # Entry points + MACCP scripts
@@ -66,7 +63,7 @@ model_ablation/                 # Side study: model ablation experiments
 jobs/                           # TamIA SLURM job scripts
 scripts/                        # Local helper scripts (monitoring, deployment)
 data/                           # Dataset files (gitignored)
-cascade_external_outputs/       # Experiment outputs (gitignored)
+outputs/                        # Experiment outputs (gitignored)
 ```
 
 ## Running
@@ -80,7 +77,7 @@ pip install pandas numpy scikit-learn xgboost scipy matplotlib torch transformer
 
 ### Data Preparation
 ```bash
-python src/cascade_external/pipeline/prepare_data.py \
+python src/conformal/pipeline/prepare_data.py \
   --data_dir data/external/eclipse_zenodo_lite \
   --output_dir data/eclipse/ \
   --top_k 30 --dataset_name eclipse --no_other \
@@ -90,21 +87,21 @@ python src/cascade_external/pipeline/prepare_data.py \
 
 ### DeBERTa Fine-tuning (4x H100)
 ```bash
-torchrun --nproc_per_node=4 src/cascade_external/pipeline/finetune_deberta.py \
+torchrun --nproc_per_node=4 src/conformal/pipeline/finetune_deberta.py \
   --data_dir data/eclipse/ --output_dir models/deberta_eclipse/ \
   --max_length 512 --batch_size 16 --epochs 5 --lr 2e-5 --distributed
 ```
 
 ### Conformal Prediction
 ```bash
-python src/cascade_external/pipeline/run_conformal.py \
+python src/conformal/pipeline/run_conformal.py \
   --model_dir models/deberta_eclipse/ --data_dir data/eclipse/ \
   --output_dir results/eclipse/ --method raps --alpha_levels 0.01 0.05 0.10 0.20
 ```
 
 ### MACCP
 ```bash
-python src/cascade_external/pipeline/run_maccp.py
+python src/conformal/pipeline/run_maccp.py
 ```
 
 ## TamIA HPC

@@ -2,7 +2,7 @@
 Fast LLM evaluation on Eclipse Component Assignment.
 
 Uses pre-extracted CSV (no JSON parsing needed).
-Reads from cascade_external_outputs/eclipse/llm_test_data.csv
+Reads from conformal_outputs/eclipse/llm_test_data.csv
 """
 
 import sys
@@ -17,9 +17,9 @@ from collections import Counter
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from cascade_external.llm.llm_classifier import LLMClassifier
+from conformal.llm.llm_classifier import LLMClassifier
 
-OUTPUT_DIR = PROJECT_ROOT / "cascade_external_outputs" / "eclipse"
+OUTPUT_DIR = PROJECT_ROOT / "conformal_outputs" / "eclipse"
 TEST_CSV = OUTPUT_DIR / "llm_test_data.csv"
 EXAMPLES_JSON = OUTPUT_DIR / "llm_few_shot_examples.json"
 

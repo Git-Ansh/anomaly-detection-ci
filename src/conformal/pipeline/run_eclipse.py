@@ -29,13 +29,13 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 from cascade.framework.confidence_stage import ConfidenceStage
-from cascade_external.data.eclipse_zenodo_loader import prepare_eclipse_zenodo_data
-from cascade_external.stages.eclipse_config import (
+from conformal.data.eclipse_zenodo_loader import prepare_eclipse_zenodo_data
+from conformal.stages.eclipse_config import (
     prepare_stage_0_data, prepare_stage_1_data, prepare_stage_2_data,
     SEVERITY_CLASSES,
 )
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'eclipse'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'eclipse'
 
 
 def _fit_predict(stage, train_X, train_y, test_X, feature_cols,

@@ -10,7 +10,7 @@ Classification target: incident category (Stage 1, top-10 + Other = 11 classes)
 Split: 60% train / 20% calibration / 20% test (temporal)
 
 Usage:
-    python src/cascade_external/pipeline/run_servicenow_conformal.py
+    python src/conformal/pipeline/run_servicenow_conformal.py
 """
 
 import sys
@@ -26,13 +26,13 @@ np.random.seed(42)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
-from cascade_external.data.servicenow_loader import (
+from conformal.data.servicenow_loader import (
     load_servicenow_events,
     aggregate_to_incidents,
     engineer_features,
 )
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'servicenow_conformal'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'servicenow_conformal'
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ────────────────────────────────────────────────────────

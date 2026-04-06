@@ -20,7 +20,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 
-from cascade_external.llm.fireworks_client import FireworksClient
+from conformal.llm.fireworks_client import FireworksClient
 
 
 class LLMClassifier:

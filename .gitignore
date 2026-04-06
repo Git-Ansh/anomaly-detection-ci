@@ -26,8 +26,8 @@ wheels/
 .installed.cfg
 *.egg
 node_modules/
-cascade_outputs/
-cascade_external_outputs/
+outputs_legacy/
+outputs/
 AGENTS.md
 CLAUDE.md
 # Virtual environments

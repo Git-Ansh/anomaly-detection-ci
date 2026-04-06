@@ -6,9 +6,9 @@ Stage 1: XGBoost assigns tiers (HIGH / ELEVATED / LOW) with tree-variance confid
 LLM:     Only called on high-variance modules where trees disagree (~10%)
 
 Usage:
-    python src/cascade_external/pipeline/run_jm1_prioritization.py
-    python src/cascade_external/pipeline/run_jm1_prioritization.py --llm-items 15
-    python src/cascade_external/pipeline/run_jm1_prioritization.py --skip-llm
+    python src/conformal/pipeline/run_jm1_prioritization.py
+    python src/conformal/pipeline/run_jm1_prioritization.py --llm-items 15
+    python src/conformal/pipeline/run_jm1_prioritization.py --skip-llm
 """
 
 import sys
@@ -29,11 +29,11 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 from cascade.framework.confidence_stage import ConfidenceStage
-from cascade_external.data.jm1_loader import load_jm1_data
-from cascade_external.stages.jm1_config import JM1_CLASSES
+from conformal.data.jm1_loader import load_jm1_data
+from conformal.stages.jm1_config import JM1_CLASSES
 from xgboost import XGBClassifier
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'jm1'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'jm1'
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 FIG_DIR = OUTPUT_DIR / 'figures'
 FIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -89,7 +89,7 @@ def assign_tiers(p_def, tree_var, var_percentile=85):
 def run_llm_on_subset(test_df, test_X, test_y, p_def, llm_indices,
                       train_X, train_y, feature_cols, n_items=15):
     """RAG-augmented LLM tier assignment on a subset."""
-    from cascade_external.llm.fireworks_client import FireworksClient
+    from conformal.llm.fireworks_client import FireworksClient
 
     scaler = StandardScaler()
     train_scaled = scaler.fit_transform(train_X)

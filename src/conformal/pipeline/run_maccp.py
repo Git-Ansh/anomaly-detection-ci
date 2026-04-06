@@ -39,10 +39,10 @@ np.random.seed(42)
 # Paths
 # ============================================================
 BASE = Path(os.environ.get("PROJECT_ROOT", "."))
-DATA_DIR = BASE / "cascade_external_outputs" / "eclipse_no_other"
-DEBERTA_DIR = BASE / "cascade_external_outputs" / "deberta_no_other"
-AGREEMENT_DIR = BASE / "cascade_external_outputs" / "agreement_analysis"
-OUTPUT_DIR = BASE / "cascade_external_outputs" / "maccp_results"
+DATA_DIR = BASE / "conformal_outputs" / "eclipse_no_other"
+DEBERTA_DIR = BASE / "conformal_outputs" / "deberta_no_other"
+AGREEMENT_DIR = BASE / "conformal_outputs" / "agreement_analysis"
+OUTPUT_DIR = BASE / "conformal_outputs" / "maccp_results"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # RAPS hyperparameters

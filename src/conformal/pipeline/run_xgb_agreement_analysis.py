@@ -25,9 +25,9 @@ except ImportError:
 
 # ─── Paths (use env vars on TamIA, fallback to local) ───
 import os
-DATA_DIR = Path(os.environ.get("ECLIPSE_DATA_DIR", "cascade_external_outputs/eclipse_no_other"))
-DEBERTA_DIR = Path(os.environ.get("DEBERTA_DIR", "cascade_external_outputs/deberta_no_other"))
-OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "cascade_external_outputs/agreement_analysis"))
+DATA_DIR = Path(os.environ.get("ECLIPSE_DATA_DIR", "conformal_outputs/eclipse_no_other"))
+DEBERTA_DIR = Path(os.environ.get("DEBERTA_DIR", "conformal_outputs/deberta_no_other"))
+OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "conformal_outputs/agreement_analysis"))
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ─── Load data ───

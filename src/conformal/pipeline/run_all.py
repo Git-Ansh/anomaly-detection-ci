@@ -14,7 +14,7 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs'
 
 
 def run_all(skip_errors: bool = True):
@@ -31,7 +31,7 @@ def run_all(skip_errors: bool = True):
     print("# ECLIPSE BUG DATASET (Zenodo 2024)")
     print("#" * 70)
     try:
-        from cascade_external.pipeline.run_eclipse import run_eclipse_cascade
+        from conformal.pipeline.run_eclipse import run_eclipse_cascade
         all_results['Eclipse'] = run_eclipse_cascade(save_results=True)
     except Exception as e:
         print(f"Eclipse FAILED: {e}")
@@ -44,7 +44,7 @@ def run_all(skip_errors: bool = True):
     print("# JM1 DEFECT PREDICTION")
     print("#" * 70)
     try:
-        from cascade_external.pipeline.run_jm1 import run_jm1_cascade
+        from conformal.pipeline.run_jm1 import run_jm1_cascade
         jm1_results = run_jm1_cascade(save_results=True)
         # Reshape JM1 results to match Eclipse format
         all_results['JM1'] = {
@@ -69,7 +69,7 @@ def run_all(skip_errors: bool = True):
     print("# SERVICENOW ITSM")
     print("#" * 70)
     try:
-        from cascade_external.pipeline.run_servicenow import run_servicenow_cascade
+        from conformal.pipeline.run_servicenow import run_servicenow_cascade
         all_results['ServiceNow'] = run_servicenow_cascade(save_results=True)
     except Exception as e:
         print(f"ServiceNow FAILED: {e}")
@@ -84,7 +84,7 @@ def run_all(skip_errors: bool = True):
         print("#" * 70)
 
         try:
-            from cascade_external.evaluation.comparison import (
+            from conformal.evaluation.comparison import (
                 print_cross_dataset_summary,
                 plot_accuracy_lift_comparison,
             )

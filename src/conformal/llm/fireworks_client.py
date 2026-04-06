@@ -23,7 +23,7 @@ DEFAULT_MODEL = "accounts/fireworks/models/deepseek-v3p2"
 # Key file and cache directory
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 KEY_FILE = PROJECT_ROOT / ".fireworks_key"
-CACHE_DIR = PROJECT_ROOT / "cascade_external_outputs" / "llm_cache"
+CACHE_DIR = PROJECT_ROOT / "conformal_outputs" / "llm_cache"
 
 
 def _load_api_key() -> Optional[str]:

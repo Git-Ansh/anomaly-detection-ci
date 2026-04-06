@@ -1,7 +1,7 @@
 """
 Quick LLM evaluation on pre-saved Eclipse test data.
 
-Reads from cascade_external_outputs/eclipse/llm_test_subset.csv
+Reads from conformal_outputs/eclipse/llm_test_subset.csv
 No Eclipse JSON loading needed -- runs in seconds.
 """
 
@@ -15,12 +15,12 @@ from collections import Counter
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from cascade_external.llm.fireworks_client import FireworksClient
-from cascade_external.llm.llm_classifier import LLMClassifier
+from conformal.llm.fireworks_client import FireworksClient
+from conformal.llm.llm_classifier import LLMClassifier
 
 # Pre-saved test data
-TEST_CSV = PROJECT_ROOT / "cascade_external_outputs" / "eclipse" / "llm_test_subset.csv"
-OUTPUT_DIR = PROJECT_ROOT / "cascade_external_outputs" / "eclipse"
+TEST_CSV = PROJECT_ROOT / "conformal_outputs" / "eclipse" / "llm_test_subset.csv"
+OUTPUT_DIR = PROJECT_ROOT / "conformal_outputs" / "eclipse"
 
 # Eclipse top-30 components + Other
 ALL_CLASSES = [

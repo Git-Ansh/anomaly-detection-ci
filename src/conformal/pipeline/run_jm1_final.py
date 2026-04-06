@@ -8,7 +8,7 @@ Runs the full 2-stage prioritization cascade with:
   4. Logistic Regression alone
 
 Saves all results, methodology documentation, and comparison tables
-to cascade_external_outputs/jm1/paper_results/.
+to conformal_outputs/jm1/paper_results/.
 
 === TERMINOLOGY ===
 
@@ -90,10 +90,10 @@ import matplotlib.pyplot as plt
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
-from cascade_external.data.jm1_loader import load_jm1_data
+from conformal.data.jm1_loader import load_jm1_data
 from xgboost import XGBClassifier
 
-OUTPUT_DIR = PROJECT_ROOT / 'cascade_external_outputs' / 'jm1' / 'paper_results'
+OUTPUT_DIR = PROJECT_ROOT / 'conformal_outputs' / 'jm1' / 'paper_results'
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 FIG_DIR = OUTPUT_DIR / 'figures'
 FIG_DIR.mkdir(parents=True, exist_ok=True)

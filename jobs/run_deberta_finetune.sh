@@ -29,7 +29,7 @@ cd $PROJ_DIR
 python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, GPUs: {torch.cuda.device_count()}, Device: {torch.cuda.get_device_name(0)}')"
 
 # Run DeBERTa fine-tuning
-python -u src/cascade_external/pipeline/run_deberta_finetune.py
+python -u src/conformal/pipeline/run_deberta_finetune.py
 
 echo "=== Done ==="
 echo "Date: $(date)"
