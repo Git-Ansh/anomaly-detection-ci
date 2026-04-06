@@ -140,3 +140,4 @@ htmlcov/
 *.pdf
 !paper/figures/*.pdf
 .fireworks_key
+.fireworks_key

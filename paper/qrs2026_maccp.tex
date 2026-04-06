@@ -579,17 +579,21 @@ Ensemble vote         & No        & 100\%   & 67.1\% & 1 (pt) & Partial \\
 DeBERTa RAPS          & Marginal  & 87.3\%  & N/A    & 5.30   & No \\
 Temp-Scaled RAPS~\cite{guo2017calibration} & Marginal & 89.2\% & N/A & 5.73 & No \\
 XGBoost RAPS          & Marginal  & 93.5\%  & N/A    & 3.12   & No \\
+Conf.\ Mondrian       & Per-group & 87.3\%  & N/A    & 5.26$^\ddagger$ & Partial \\
+SACP~\cite{alami2025sacp} & Marginal & 98.6\% & N/A & 8.08$^\S$ & No \\
 Trust Score Mondrian~\cite{kaur2025trust} & Per-group & 89.6\% & N/A & 2.37$^\dagger$ & Partial \\
 MACCP (ours)          & Per-group & 89.9\%  & N/A    & 2.30$^*$ & \textbf{Yes} \\
 \bottomrule
 \multicolumn{6}{@{}l}{\scriptsize $^*$Agree partition; 61.2\% singletons at 90.0\% accuracy.} \\
-\multicolumn{6}{@{}l}{\scriptsize $^\dagger$High-trust partition (35.2\%); 59.2\% singletons at 88.7\% accuracy.}
+\multicolumn{6}{@{}l}{\scriptsize $^\dagger$High-trust partition (35.2\%); 59.2\% singletons at 88.7\% accuracy.} \\
+\multicolumn{6}{@{}l}{\scriptsize $^\ddagger$Best group (highest confidence bin): 36.8\% singletons.} \\
+\multicolumn{6}{@{}l}{\scriptsize $^\S$3.2\% singletons; overcoverage produces conservative sets.}
 \end{tabular}
 \end{table}
 
 To reach 90\% accuracy on retained predictions, softmax thresholding requires DeBERTa confidence above 0.99 --- a bar so high that only 12.8\% of bugs pass it. The remaining 87\% receive no prediction at all: no shortlist, no set, just silence. Ensemble voting does better on aggregate accuracy (67.1\%) and the agree/disagree partition does identify reliable predictions (85.7\% vs.\ 50.7\%), but without conformal prediction the output is still a single class with no coverage guarantee for uncertain cases. Single-model RAPS addresses the guarantee gap by producing calibrated prediction sets, yet it applies a uniform threshold --- the same quantile for bugs a domain expert would route in seconds and bugs that would require an hour of investigation. MACCP resolves this tension. The agree partition receives tight sets (mean 2.30, 61.2\% singletons) backed by a per-group 90\% coverage guarantee, while the disagree partition receives wide sets that honestly reflect model uncertainty.
 
-Temperature scaling~\cite{guo2017calibration} (learning a single parameter $T{=}1.41$ on the calibration set) slightly improves coverage (89.2\% vs.\ 87.3\%) and increases mean set size (5.73 vs.\ 5.30) but provides no per-group guarantees. Trust Score Mondrian CP~\cite{kaur2025trust}, which partitions by kNN-based trust scores, achieves 59.2\% singletons at 88.7\% accuracy in the high-trust partition (35.2\% of bugs) --- comparable to MACCP's 61.2\% at 90.0\% in the agree partition (46.7\%). MACCP covers a larger fraction of bugs at similar singleton quality and requires no hyperparameter selection (number of neighbors, distance metric).
+Temperature scaling~\cite{guo2017calibration} (learning a single parameter $T{=}1.41$ on the calibration set) slightly improves coverage (89.2\% vs.\ 87.3\%) and increases mean set size (5.73 vs.\ 5.30) but provides no per-group guarantees. Trust Score Mondrian CP~\cite{kaur2025trust}, which partitions by kNN-based trust scores, achieves 59.2\% singletons at 88.7\% accuracy in the high-trust partition (35.2\% of bugs) --- comparable to MACCP's 61.2\% at 90.0\% in the agree partition (46.7\%). MACCP covers a larger fraction of bugs at similar singleton quality and requires no hyperparameter selection (number of neighbors, distance metric). Confidence-binned Mondrian CP, which partitions by DeBERTa softmax quartile rather than agreement, achieves 36.8\% singletons in its best group --- 25$\pp$ below MACCP's agree partition --- confirming that fine-grained confidence partitioning cannot substitute for cross-model agreement. SACP~\cite{alami2025sacp}, which aggregates full probability distributions from both models via e-value transformation, overcoveres at 98.6\% with mean set size 8.08 and only 3.2\% singletons. Binary agreement, despite reducing each model's output to a single bit, produces tighter sets because Mondrian partitioning calibrates each group independently rather than blending scores into a single conservative threshold.
 
 An earlier design explored multi-stage cascade architectures with confidence gating between sequential stages. We abandoned it after observing conditional independence between stages sharing text features: upstream predictions contributed no additional signal to downstream classifiers. Parallel cross-model agreement, drawing on fundamentally different feature channels, proved far more informative.
 

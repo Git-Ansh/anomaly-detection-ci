@@ -1,6 +1,6 @@
 {
-  "Bookmarks & History": 0,
-  "Build Config": 1,
+  "Address Bar": 0,
+  "Bookmarks & History": 1,
   "Disability Access": 2,
   "Extension Compatibility": 3,
   "File Handling": 4,
@@ -8,15 +8,16 @@
   "Help Documentation": 6,
   "Installer": 7,
   "Keyboard Navigation": 8,
-  "Location Bar": 9,
-  "Menus": 10,
+  "Menus": 9,
+  "Microsummaries": 10,
   "Migration": 11,
-  "Preferences": 12,
-  "RSS Discovery and Preview": 13,
-  "Search": 14,
-  "Session Restore": 15,
+  "RSS Discovery and Preview": 12,
+  "Search": 13,
+  "Session Restore": 14,
+  "Settings UI": 15,
   "Shell Integration": 16,
   "Tabbed Browser": 17,
   "Theme": 18,
-  "Toolbars and Customization": 19
+  "Toolbars and Customization": 19,
+  "Other": 20
 }

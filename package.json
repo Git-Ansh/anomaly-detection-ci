@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "opencode-antigravity-auth": "^1.6.0",
-    "opencode-worktree": "^0.4.0"
-  }
-}

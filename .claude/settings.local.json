@@ -84,7 +84,9 @@
       "Bash(find /home/zephyrus/perf-regression-ci/cascade_outputs -type f \\\\\\( -name \"*.json\" -o -name \"*report*\" -o -name \"*confusion*\" -o -name \"*classification*\" \\\\\\) 2>/dev/null | head -20)",
       "Bash(find /home/zephyrus/perf-regression-ci/cascade_external_outputs -type f \\\\\\( -name \"*.json\" -o -name \"*report*\" -o -name \"*confusion*\" \\\\\\) 2>/dev/null | sort)",
       "Bash(find /home/zephyrus/perf-regression-ci/cascade_external_outputs -type f \\\\\\( -name \"*.csv\" -o -name \"*predictions*\" -o -name \"*test*\" \\\\\\) 2>/dev/null | grep -v llm_cache)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
